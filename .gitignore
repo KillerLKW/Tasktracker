@@ -1,0 +1,15 @@
+# Public website repository: everything is excluded unless explicitly listed.
+*
+!.gitignore
+!.nojekyll
+!README.md
+!index.html
+!styles.css
+!app.js
+!storage.js
+!logo.svg
+!apple-touch-icon.png
+!.github/
+!.github/workflows/
+!.github/workflows/pages.yml
+!.github/workflows/main.yml

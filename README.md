@@ -4,7 +4,17 @@ Statische Web-App für Aufgaben, Projekte, Wochen- und Semesterplanung sowie Sta
 
 ## Stand der GitHub-Veröffentlichung
 
-Die Website ist für GitHub Pages vorbereitet. **Cloud-Synchronisierung und persönliche Anmeldung sind noch nicht eingerichtet.** Aufgaben werden im jeweiligen Browser bzw. in einer bewusst geöffneten, schreibbaren Trackerdatei gespeichert. Eine Installation auf mehreren Geräten führt deshalb noch nicht zu einem gemeinsamen Datenbestand.
+Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Die GitHub-Version wird vorerst bewusst **ohne Cloud-Synchronisierung** betrieben. Aufgaben werden auf dem jeweiligen Gerät automatisch im Browser gespeichert. Eine Installation auf mehreren Geräten führt deshalb zu getrennten Datenbeständen.
+
+### Verwendung im Alltag
+
+- Website über die obige HTTPS-Adresse öffnen und Aufgaben direkt erstellen. Der Arbeitsstand bleibt beim Neuladen erhalten; eine Dateiverbindung ist dafür nicht erforderlich.
+- Unter **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** den bisherigen JSON-Tracker übernehmen. Importierte Daten werden getrennt von Browseraufgaben weitergeführt. Unbekannte Felder alter Dateien bleiben beim Export erhalten.
+- **Trackerdatei exportieren** sichert den gesamten geöffneten Bestand einschließlich erledigter Aufgaben, Papierkorb, Projekte, Zeiterfassung und Semestereinstellungen. Auf dem iPhone erscheint dafür der normale Download. Der Download überschreibt die zuvor importierte Datei nicht automatisch.
+- In unterstützten Desktop-Browsern lässt sich zusätzlich eine Datei zum automatischen Speichern verbinden. Nicht unterstützte Ordner- und Dateifunktionen werden ausgeblendet.
+- Falls angeboten, kann **Gerätespeicher dauerhaft anfordern** den Browser um dauerhafte Speicherung bitten. Die Entscheidung trifft der Browser. Das ersetzt keinen JSON-Export; beim bewussten Löschen der Website-Daten wird auch dieser Speicher entfernt.
+
+Zum manuellen Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Getrennte Bearbeitungen auf zwei Geräten werden nicht zusammengeführt. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
 
 Der Pi wird von der GitHub-Pages-Version nicht angesprochen. Es werden keine Aufgaben, Sicherungen, Zertifikate oder Zugangsschlüssel mit veröffentlicht. Die unmarkierten Originaldateien können weiterhin für den bisherigen lokalen/Pi-Betrieb genutzt werden.
 
@@ -43,7 +53,7 @@ Die Standardadresse ist `https://DEIN-BENUTZERNAME.github.io/tasktracker/`. Den 
 
 ## 5. Aufgaben übernehmen
 
-Vor dem Wechsel einen aktuellen JSON-Export des bisherigen Trackers sichern. Auf der veröffentlichten Website **Einstellungen → Dateien & Speicherung → Trackerdatei öffnen** wählen und den eigenen Export bewusst öffnen. Der Start unter GitHub Pages besitzt einen anderen Browser-Speicherbereich als die lokale Datei oder die Pi-Adresse; bestehende Browserdaten werden nicht automatisch übertragen.
+Vor dem Wechsel einen aktuellen JSON-Export des bisherigen Trackers sichern. Auf der veröffentlichten Website **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** wählen und den eigenen Export bewusst öffnen. Der Start unter GitHub Pages besitzt einen anderen Browser-Speicherbereich als die lokale Datei oder die Pi-Adresse; bestehende Browserdaten werden nicht automatisch übertragen.
 
 Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository und synchronisiert sie noch nicht zwischen Geräten.
 
@@ -53,11 +63,11 @@ Im Ursprungsprojekt das Paket erneut erstellen. Die sechs aktualisierten Website
 
 ## Noch offen: gemeinsamer Cloud-Datenbestand
 
-Für Echtzeit-Synchronisierung ohne Pi wird ein eigener Cloud-Datenzugriff mit Anmeldung, Zugriffsregeln, Versions-/Konfliktschutz und Export benötigt. Supabase wurde als mögliche Lösung vorgeschlagen; Anbieter und Tarif sind noch nicht festgelegt. Den Pi-Dienst erst nach Datenübernahme und erfolgreichem Mehrgeräte-Test abschalten.
+Für Echtzeit-Synchronisierung ohne Pi wäre ein eigener Cloud-Datenzugriff mit Anmeldung, Zugriffsregeln, Versions-/Konfliktschutz und Export erforderlich. Der Nutzer hat am 25.11.2026 vorerst den Betrieb ohne Cloud-Synchronisierung gewählt. Vor dem Abschalten des Pi einen aktuellen JSON-Export sichern und in der GitHub-Version prüfen.
 
 ## Referenzen
 
 - [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 - [GitHub Pages mit eigenen Actions-Workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 
-Vorbereitung: 23.11.2026. Das Vorhandensein dieses Pakets bedeutet nicht, dass bereits ein Repository erstellt, Daten übertragen oder eine Website veröffentlicht wurde.
+Stand: 25.11.2026. Die Veröffentlichung der Website überträgt keine persönlichen Aufgaben; diese werden bewusst per Trackerdatei importiert.

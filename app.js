@@ -515,9 +515,7 @@ document.querySelector("#new-task").addEventListener("click", () => {
   fillRepeatControls("task", null);
   taskTitle.setCustomValidity("");
   taskError.hidden = true;
-  document.querySelector(".storage-note").textContent = piRevision ? "Wird automatisch mit dem Pi synchronisiert." : fileDocument
-    ? (fileHandle && !fileAutoSaveBlocked ? "Wird automatisch in der Trackerdatei gespeichert." : "Wird als Entwurf gesichert. Bitte automatisches Speichern einmal aktivieren.")
-    : "Wird in diesem Browser gespeichert.";
+  document.querySelector("#task-storage-note").textContent = editingStorageMessage();
   taskDialog.showModal();
   beginEditor("task");
 });
@@ -1198,6 +1196,56 @@ function saveWorkingDraft(document) {
     resumeApproved: resumeApprovedDraft, savedBaseline: fileBaseline });
 }
 
+// Export every part of the active tracker, including browser-only semester settings.
+// Imported documents retain their original identifiers and unknown legacy fields.
+function currentTrackerDocument() {
+  if (fileDocument) return trackerFiles.validate(structuredClone(fileDocument));
+  const document = trackerFiles.fromTasks(tasks, browserFreeTime, browserProjectOrder, browserProjectStyles);
+  if (localSemester) document.semester = structuredClone(localSemester);
+  return trackerFiles.validate(document);
+}
+
+function editingStorageMessage() {
+  if (piRevision) return "Wird automatisch mit dem Pi synchronisiert.";
+  if (!fileDocument) return "Wird automatisch auf diesem Gerät gespeichert.";
+  if (fileHandle && !fileAutoSaveBlocked) return "Wird automatisch auf diesem Gerät und in der Trackerdatei gespeichert.";
+  return "Wird automatisch auf diesem Gerät gespeichert. Eine aktuelle Trackerdatei kannst du in den Einstellungen exportieren.";
+}
+
+function updateStorageGuidance() {
+  const directFiles = typeof window.showSaveFilePicker === "function";
+  document.querySelector("#tracker-folder-controls").hidden = !trackerFolder && typeof window.showDirectoryPicker !== "function";
+  document.querySelector("#storage-explanation").textContent = githubPagesHosting
+    ? "Deine Änderungen werden automatisch in diesem Browser gespeichert und beim nächsten Öffnen wieder geladen. Über „Trackerdatei importieren“ übernimmst du deinen bisherigen Tracker."
+    : "Öffne eine Trackerdatei, speichere deine Änderungen oder erstelle eine Kopie.";
+  document.querySelector("#storage-capabilities").textContent = githubPagesHosting
+    ? "Aufgaben bleiben auf diesem Gerät. Erstelle regelmäßig einen JSON-Export; das Löschen der Website-Daten entfernt auch den gespeicherten Arbeitsstand."
+    : "";
+  document.querySelector("#file-save-hint").textContent = directFiles
+    ? "Eine verbundene Datei kann zusätzlich automatisch gespeichert werden. Browseraufgaben und importierte Tracker bleiben getrennt."
+    : "Dieser Browser unterstützt Import und Download. Eine Datei in „Dateien“ wird dadurch nicht automatisch überschrieben; exportiere deinen aktuellen Stand zur Sicherung oder Übertragung.";
+  document.querySelector("#semester-storage-note").textContent = piRevision
+    ? "Semesterstart, Dauer und Pausen werden automatisch mit dem Pi synchronisiert."
+    : "Semesterstart, Dauer und Pausen werden auf diesem Gerät gespeichert und beim JSON-Export mitgesichert.";
+}
+
+const persistStorageButton = document.querySelector("#persist-storage");
+async function updatePersistentStorage(request = false) {
+  if (!navigator.storage?.persisted || !navigator.storage?.persist) return;
+  persistStorageButton.disabled = true;
+  try {
+    const persistent = request ? await navigator.storage.persist() : await navigator.storage.persisted();
+    persistStorageButton.hidden = persistent || !githubPagesHosting;
+    document.querySelector("#persistent-storage-status").textContent = persistent
+      ? "Dauerhafter Gerätespeicher ist aktiv. JSON-Exporte bleiben als zusätzliche Sicherung sinnvoll."
+      : request ? "Der Browser hat dauerhaften Speicher nicht zugesagt. Deine Änderungen werden weiterhin auf diesem Gerät gespeichert; sichere sie zusätzlich per JSON-Export." : "";
+  } catch {
+    document.querySelector("#persistent-storage-status").textContent = "Die Speichereinstellung konnte nicht geprüft werden. JSON-Export bleibt verfügbar.";
+  } finally { persistStorageButton.disabled = false; }
+}
+persistStorageButton.addEventListener("click", () => updatePersistentStorage(true));
+updatePersistentStorage();
+
 function trackerDraftPending() {
   return !!(fileDocument && pendingFileDraft);
 }
@@ -1213,15 +1261,18 @@ function updateFileStatus() {
   document.querySelector("#tracker-draft-notice").hidden = !draftPending;
   document.querySelector("#notice-restore-draft").disabled = fileBusy || savingTask;
   const enableAutoSave = document.querySelector("#enable-file-autosave");
-  enableAutoSave.hidden = !fileDocument || !!piRevision || (!!fileHandle && !fileAutoSaveBlocked);
+  enableAutoSave.hidden = !fileDocument || !!piRevision || (!fileHandle && typeof window.showSaveFilePicker !== "function") || (!!fileHandle && !fileAutoSaveBlocked);
   enableAutoSave.disabled = fileBusy || savingTask || draftPending;
   document.querySelectorAll(".project-drag-handle").forEach(button => { button.disabled = fileBusy || savingTask || draftPending; });
   reopen.hidden = !recentTracker || !!piRevision || (!!fileDocument && !draftPending);
   reopen.textContent = draftPending ? "Gespeicherte Datei weiterverwenden" :
     recentTracker ? "Zuletzt geöffnet: " + recentTracker.name : "Letzte Trackerdatei öffnen";
-  document.querySelector("#sync-status-text").textContent = !piRevision ? "Lokaler Tracker" :
+  document.querySelector("#sync-status-text").textContent = !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
     piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : "Pi-Tracker geöffnet";
-  document.querySelector("#save-tracker").textContent = piRevision ? "Auf Pi speichern" : "Datei speichern";
+  document.querySelector("#save-tracker").textContent = piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
+  document.querySelector("#open-tracker").textContent = githubPagesHosting ? "Trackerdatei importieren" : "Trackerdatei öffnen";
+  document.querySelector("#copy-tracker").hidden = githubPagesHosting && !fileDocument;
+  updateStorageGuidance();
   document.querySelector("#pi-open").disabled = githubPagesHosting || !canChangeFile() || location.protocol !== "https:";
   document.querySelector("#pi-initialize").disabled = githubPagesHosting || !canChangeFile() || !tasksLoaded || !!pendingFileDraft || !!piRevision || location.protocol !== "https:";
   const piSave = document.querySelector("#pi-save");
@@ -1446,7 +1497,7 @@ async function saveTracker(copy = false, automatic = false) {
   if (fileBusy || savingTask || (timeControlsReady && timeBusy) || !tasksLoaded || trackerDraftPending()) return;
   setFileBusy(true);
   try {
-    const documentToSave = fileDocument || trackerFiles.fromTasks(tasks, browserFreeTime, browserProjectOrder, browserProjectStyles);
+    const documentToSave = currentTrackerDocument();
     const snapshot = JSON.stringify(documentToSave, null, 2);
     let handle = copy ? null : fileHandle;
     if (automatic && (!handle || await handle.queryPermission({ mode: "readwrite" }) !== "granted")) {
@@ -1963,8 +2014,7 @@ function openTaskOptions(id) {
   document.querySelector("#options-due").value = optionsExpected.dueDate;
   document.querySelector("#options-notes").value = optionsExpected.description;
   document.querySelector("#options-error").hidden = true;
-  document.querySelector("#options-storage-note").textContent = piRevision ? "Wird automatisch mit dem Pi synchronisiert." : fileDocument ?
-    (fileHandle && !fileAutoSaveBlocked ? "Wird automatisch in der Trackerdatei gespeichert." : "Wird als Entwurf gesichert. Bitte automatisches Speichern einmal aktivieren.") : "Wird in diesem Browser gespeichert.";
+  document.querySelector("#options-storage-note").textContent = editingStorageMessage();
   document.querySelector("#options-timer").textContent = optionsCompleted ? "Speichern & Zeiten ansehen" : "Speichern & Zeit erfassen";
   renderOptionsChecklist();
   if (!optionsDialog.open) optionsDialog.showModal();
@@ -2344,8 +2394,7 @@ async function savePiTracker(initialize = false) {
   if (!canChangeFile() || !tasksLoaded || pendingFileDraft || (initialize ? !!piRevision : !piRevision)) return;
   setFileBusy(true);
   try {
-    const document = fileDocument || trackerFiles.fromTasks(tasks, browserFreeTime, browserProjectOrder, browserProjectStyles);
-    if (initialize && !fileDocument && localSemester) document.semester = structuredClone(localSemester);
+    const document = currentTrackerDocument();
     trackerFiles.validate(document);
     const body = JSON.stringify(document, null, 2);
     const condition = initialize ? { "If-None-Match": "*" } : { "If-Match": piRevision };

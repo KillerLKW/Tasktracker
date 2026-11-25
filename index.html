@@ -8,9 +8,9 @@
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=sidebar-breakpoint-1">
+    <link rel="stylesheet" href="styles.css?v=github-local-2">
     <script src="storage.js?v=editor-only-2" defer></script>
-    <script src="app.js?v=github-pages-1" defer></script>
+    <script src="app.js?v=github-local-2" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -95,7 +95,9 @@
         <section class="settings-card" aria-labelledby="settings-files-title">
           <h2 id="settings-files-title">Dateien &amp; Speicherung</h2>
           <p id="settings-storage-status" role="status">Browseraufgaben · lokal gespeichert</p>
-          <p>Öffne eine Trackerdatei, speichere deine Änderungen oder erstelle eine Kopie.</p>
+          <p id="storage-explanation">Öffne eine Trackerdatei, speichere deine Änderungen oder erstelle eine Kopie.</p>
+          <p id="storage-capabilities" class="settings-hint"></p>
+          <div id="tracker-folder-controls">
           <p id="tracker-folder-status" class="settings-hint">Kein Ordner für Trackerdateien ausgewählt.</p>
           <div class="tracker-folder-actions">
             <button class="button" id="choose-tracker-folder" type="button" disabled>Ordner für Trackerdateien auswählen</button>
@@ -106,6 +108,7 @@
             <p id="tracker-files-status" class="settings-hint" role="status"></p>
             <ul id="tracker-file-list"></ul>
           </section>
+          </div>
         <div class="file-actions">
           <button class="button" id="enable-file-autosave" type="button" hidden>Automatisches Speichern aktivieren</button>
           <button class="button" id="reopen-tracker" type="button" hidden>Letzte Trackerdatei öffnen</button>
@@ -116,7 +119,9 @@
           <button class="button" id="restore-file-draft" type="button" hidden>Dateientwurf wiederherstellen</button>
           <input id="tracker-file-input" type="file" accept=".json,application/json" hidden>
         </div>
-          <p class="settings-hint">Mit Schreibzugriff werden Änderungen automatisch in die verbundene Trackerdatei gespeichert. „Automatisches Speichern aktivieren“ verbindet die Datei und erteilt den nötigen Zugriff. Browseraufgaben bleiben getrennt von Trackerdateien.</p>
+          <p id="file-save-hint" class="settings-hint">Mit Schreibzugriff werden Änderungen automatisch in die verbundene Trackerdatei gespeichert. Browseraufgaben bleiben getrennt von Trackerdateien.</p>
+          <button class="button" id="persist-storage" type="button" hidden>Gerätespeicher dauerhaft anfordern</button>
+          <p id="persistent-storage-status" class="settings-hint" role="status"></p>
         </section>
         <section class="settings-card" aria-labelledby="settings-trash-title">
           <h2 id="settings-trash-title">Papierkorb</h2>
@@ -138,7 +143,7 @@
         </section>
         <section class="settings-card" aria-labelledby="settings-sync-title">
           <h2 id="settings-sync-title">Synchronisierung</h2>
-          <p id="github-hosting-note" class="settings-hint" hidden>Diese Website speichert deine Aufgaben derzeit auf diesem Gerät oder in einer verbundenen Trackerdatei. Die geräteübergreifende Cloud-Synchronisierung ist noch nicht eingerichtet. Eine vorhandene Trackerdatei kannst du unter „Dateien &amp; Speicherung“ öffnen.</p>
+          <p id="github-hosting-note" class="settings-hint" hidden>Du verwendest den Tracker ohne Cloud-Synchronisierung. Jedes Gerät hat einen eigenen Datenbestand. Zum Übertragen exportiere eine Trackerdatei und importiere sie auf dem anderen Gerät. Die Aufgaben werden nicht auf GitHub hochgeladen.</p>
           <div id="pi-sync-controls">
           <p>Geräte mit dem Freigabeschlüssel können den gemeinsamen Tracker auf dem Pi laden und bearbeiten.</p>
           <label for="pi-key">Freigabeschlüssel</label>
@@ -307,7 +312,7 @@
     <dialog class="task-dialog" id="semester-dialog" aria-labelledby="semester-title">
       <form id="semester-form">
         <div class="dialog-heading"><h2 id="semester-title">Semester einrichten</h2></div>
-        <p class="storage-note">Beim Pi-Tracker werden Semesterstart, Dauer und Pausen auf deine Geräte übertragen. Bei einer lokalen Trackerdatei werden sie in dieser Datei gespeichert.</p>
+        <p class="storage-note" id="semester-storage-note">Semesterstart, Dauer und Pausen werden mit deinem aktuellen Tracker gespeichert.</p>
         <label for="semester-type">Semester</label>
         <select id="semester-type"><option value="winter">Wintersemester</option><option value="summer">Sommersemester</option></select>
         <label for="semester-start">Semesterstart</label>
@@ -376,7 +381,7 @@
         <label for="task-due">Frist <span class="optional-label">(optional)</span></label>
         <input id="task-due" name="dueDate" type="date" min="0001-01-01" max="9999-12-31">
         <div id="task-repeat-controls"></div>
-        <p class="storage-note">Wird in diesem Browser gespeichert.</p>
+        <p class="storage-note" id="task-storage-note">Wird automatisch auf diesem Gerät gespeichert.</p>
         <p class="form-error" id="task-error" role="alert" hidden></p>
         <div class="dialog-actions">
           <button class="button" id="cancel-task" type="button">Abbrechen</button>
