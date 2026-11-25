@@ -18,6 +18,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -34,6 +35,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node --check app.js
+          node --check storage.js
           mkdir _site
           for file in index.html styles.css app.js storage.js logo.svg apple-touch-icon.png; do
             test -f "$file"
@@ -47,6 +50,27 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+      - name: Wait for Pages artifact metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in {1..20}; do
+            count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length')
+            if [ "$count" = "1" ]; then
+              echo "Pages artifact is available."
+              exit 0
+            fi
+            if [ "$count" -gt 1 ]; then
+              echo "::error::Multiple Pages artifacts found; refusing an ambiguous deployment."
+              exit 1
+            fi
+            echo "Waiting for Pages artifact metadata (attempt $attempt/20)."
+            sleep 3
+          done
+          echo "::error::Pages artifact metadata did not become available."
+          exit 1
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4
