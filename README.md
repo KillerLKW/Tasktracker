@@ -4,7 +4,7 @@ Statische Web-App für Aufgaben, Projekte, Wochen- und Semesterplanung sowie Sta
 
 ## Stand der GitHub-Veröffentlichung
 
-Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Die GitHub-Version wird vorerst bewusst **ohne Cloud-Synchronisierung** betrieben. Aufgaben werden auf dem jeweiligen Gerät automatisch im Browser gespeichert. Eine Installation auf mehreren Geräten führt deshalb zu getrennten Datenbeständen.
+Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Aufgaben werden zunächst automatisch auf dem jeweiligen Gerät gespeichert. Optional lässt sich unter **Einstellungen → Cloud-Synchronisierung** ein Supabase-Projekt verbinden. Die vollständige Einrichtung steht in [supabase/README.md](supabase/README.md); das vorbereitete Datenbankschema in [supabase/setup.sql](supabase/setup.sql). Ohne diese Einrichtung gibt es keine Cloud-Anfragen und keinen automatischen Upload.
 
 ### Verwendung im Alltag
 
@@ -14,7 +14,7 @@ Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Die GitHu
 - In unterstützten Desktop-Browsern lässt sich zusätzlich eine Datei zum automatischen Speichern verbinden. Nicht unterstützte Ordner- und Dateifunktionen werden ausgeblendet.
 - Falls angeboten, kann **Gerätespeicher dauerhaft anfordern** den Browser um dauerhafte Speicherung bitten. Die Entscheidung trifft der Browser. Das ersetzt keinen JSON-Export; beim bewussten Löschen der Website-Daten wird auch dieser Speicher entfernt.
 
-Zum manuellen Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Getrennte Bearbeitungen auf zwei Geräten werden nicht zusammengeführt. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
+Ohne Cloud-Anbindung zum Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Im geöffneten Cloud-Tracker werden Änderungen automatisch synchronisiert; unabhängige Bearbeitungen werden zusammengeführt, widersprüchliche Angaben erfordern eine Auswahl. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
 
 Der Pi wird von der GitHub-Pages-Version nicht angesprochen. Es werden keine Aufgaben, Sicherungen, Zertifikate oder Zugangsschlüssel mit veröffentlicht. Die unmarkierten Originaldateien können weiterhin für den bisherigen lokalen/Pi-Betrieb genutzt werden.
 
@@ -22,9 +22,9 @@ Der Pi wird von der GitHub-Pages-Version nicht angesprochen. Es werden keine Auf
 
 Im ursprünglichen Windows-Projekt `GitHub-Paket-erstellen.cmd` ausführen. Es erzeugt einen neuen Ordner und ein ZIP unter `GitHub-Veroeffentlichung`. **Nur den Inhalt dieses erzeugten Paketordners veröffentlichen.** Der gesamte ursprüngliche Projektordner enthält private Trackerdateien und gehört nicht in den Web-Upload.
 
-Das Paket enthält genau zehn Dateien: sechs Website-Dateien, diese Anleitung, `.gitignore`, `.nojekyll` und `.github/workflows/pages.yml`. Dot-Dateien und der Workflow müssen erhalten bleiben. Das ZIP ist zum Transport gedacht; es darf nicht als einzelne ZIP-Datei ins Repository hochgeladen werden.
+Das Paket enthält genau 13 Dateien: sieben Website-Dateien, diese Anleitung, `.gitignore`, `.nojekyll`, `.github/workflows/pages.yml` und die zwei Supabase-Einrichtungsdateien. Dot-Dateien und der Workflow müssen erhalten bleiben. Das ZIP ist zum Transport gedacht; es darf nicht als einzelne ZIP-Datei ins Repository hochgeladen werden.
 
-Die `.gitignore` arbeitet mit einer Positivliste. Sie verhindert versehentliche neue Git-Aufnahmen anderer Dateien; bereits früher eingecheckte Dateien werden dadurch nicht automatisch entfernt. Deshalb ein neues leeres Repository und das saubere Paket verwenden. Auch der Pages-Workflow veröffentlicht ausschließlich die sechs ausdrücklich ausgewählten Website-Dateien plus `.nojekyll`.
+Die `.gitignore` arbeitet mit einer Positivliste. Sie verhindert versehentliche neue Git-Aufnahmen anderer Dateien; bereits früher eingecheckte Dateien werden dadurch nicht automatisch entfernt. Deshalb ein neues leeres Repository und das saubere Paket verwenden. Der Pages-Workflow veröffentlicht ausschließlich die sieben Website-Dateien, die öffentlichen Supabase-Anleitungen und `.nojekyll`. Private Backups und Trackerdateien bleiben ausgeschlossen.
 
 ## 2. Neues Repository auf GitHub anlegen
 
@@ -43,7 +43,7 @@ git remote add origin https://github.com/DEIN-BENUTZERNAME/tasktracker.git
 git push -u origin main
 ```
 
-Bei `git status --short` dürfen nur die zehn Paketdateien erscheinen. Die Anmeldung bei GitHub erfolgt über den eigenen normalen Git-Anmeldeweg; Passwörter oder Tokens gehören nicht in diese Befehle, die URL oder die Website-Dateien.
+Bei `git status --short` dürfen nur die 13 Paketdateien erscheinen. Die Anmeldung bei GitHub erfolgt über den eigenen normalen Git-Anmeldeweg; Passwörter oder Tokens gehören nicht in diese Befehle, die URL oder die Website-Dateien.
 
 ## 4. GitHub Pages einschalten
 
@@ -55,15 +55,17 @@ Die Standardadresse ist `https://DEIN-BENUTZERNAME.github.io/tasktracker/`. Den 
 
 Vor dem Wechsel einen aktuellen JSON-Export des bisherigen Trackers sichern. Auf der veröffentlichten Website **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** wählen und den eigenen Export bewusst öffnen. Der Start unter GitHub Pages besitzt einen anderen Browser-Speicherbereich als die lokale Datei oder die Pi-Adresse; bestehende Browserdaten werden nicht automatisch übertragen.
 
-Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository und synchronisiert sie noch nicht zwischen Geräten.
+Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository. Geräteübergreifende Synchronisierung erfolgt ausschließlich über den bewusst geöffneten Supabase-Tracker.
 
 ## Spätere Änderungen veröffentlichen
 
-Im Ursprungsprojekt das Paket erneut erstellen. Die sechs aktualisierten Website-Dateien und gegebenenfalls den Workflow in das bereits vorhandene lokale Git-Repository übernehmen; dessen `.git`-Ordner erhalten. Vor Commit/Push die Dateiliste prüfen. Jeder Push auf `main` führt die automatische Veröffentlichung aus. Der Pi-Updater wird dafür nicht verwendet.
+Im Ursprungsprojekt das Paket erneut erstellen. Die aktualisierten Paketdateien und gegebenenfalls den Workflow in das bereits vorhandene lokale Git-Repository übernehmen; dessen `.git`-Ordner erhalten. Im bestehenden Online-Repository heißt der Workflow `.github/workflows/main.yml`; dort diesen aktualisieren, ohne einen zweiten Veröffentlichungsworkflow anzulegen. Vor Commit/Push die Dateiliste prüfen. Jeder Push auf `main` führt die automatische Veröffentlichung aus. Der Pi-Updater wird dafür nicht verwendet.
 
-## Noch offen: gemeinsamer Cloud-Datenbestand
+## Supabase und Sicherung vor dem Umbau
 
-Für Echtzeit-Synchronisierung ohne Pi wäre ein eigener Cloud-Datenzugriff mit Anmeldung, Zugriffsregeln, Versions-/Konfliktschutz und Export erforderlich. Der Nutzer hat am 25.11.2026 vorerst den Betrieb ohne Cloud-Synchronisierung gewählt. Vor dem Abschalten des Pi einen aktuellen JSON-Export sichern und in der GitHub-Version prüfen.
+Supabase-Anbindung mit E-Mail/Passwort-Anmeldung, Realtime-Benachrichtigungen, atomarem Versionsvergleich, Konfliktdialog und lokalem Offline-Arbeitsstand ist vorbereitet. Ein echtes Supabase-Projekt muss noch angelegt und mit dem SQL-Skript eingerichtet werden. Bis dahin bleibt der bisherige lokale Betrieb erhalten. Ein Tracker gehört zu einem Konto; mehrere Geräte verwenden dasselbe Konto.
+
+Vor diesem Umbau wurde das lokale Projekt einschließlich vorhandener Trackerdateien als ZIP im privaten Ordner `Backups` gesichert. Der vorherige GitHub-Stand ist über den Branch `backup/vor-supabase-2026-11-25` erhalten. Browserdaten und ein nicht erreichbarer Pi sind nicht Bestandteil dieses Dateisystem-Backups; einen aktuellen JSON-Export separat aufbewahren.
 
 ## Referenzen
 

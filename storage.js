@@ -467,6 +467,23 @@ const taskStorage = (() => {
     });
   }
 
+  async function saveCloudCache(value, expectedVersion) {
+    const db = await open(), key = "cloud-cache:" + value.scope;
+    const next = { ...structuredClone(value), cacheVersion: crypto.randomUUID() };
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("recovery", "readwrite"), store = tx.objectStore("recovery"), request = store.get(key);
+      let failure;
+      request.onsuccess = () => {
+        if (expectedVersion !== undefined && (request.result?.cacheVersion || null) !== expectedVersion) {
+          failure = new Error("Der Cloud-Arbeitsstand wurde in einem anderen Fenster geändert. Bitte neu laden; die andere Fassung bleibt gesichert."); tx.abort(); return;
+        }
+        store.put(next, key);
+      };
+      tx.oncomplete = () => resolve(next);
+      tx.onabort = tx.onerror = () => reject(failure || tx.error || new Error("Der Cloud-Arbeitsstand konnte nicht gesichert werden."));
+    });
+  }
+
   return { load, add, setCompleted, updateTime, updateDetails, deleteTask, loadFreeTime, updateFreeTime,
     loadProjectOrder: async () => (await draftOperation("get", undefined, "project-order")) || [], saveProjectOrder,
     loadProjectStyles: async () => (await draftOperation("get", undefined, "project-styles")) || [],
@@ -475,7 +492,13 @@ const taskStorage = (() => {
     loadTrackerFolder: () => draftOperation("get", undefined, "tracker-folder"),
     saveTrackerFolder: handle => draftOperation("put", handle, "tracker-folder"),
     loadRecentTracker: () => draftOperation("get", undefined, "recent-tracker"),
-    saveRecentTracker: record => draftOperation("put", record, "recent-tracker") };
+    saveRecentTracker: record => draftOperation("put", record, "recent-tracker"),
+    loadCloudConfig: () => draftOperation("get", undefined, "cloud-config"),
+    saveCloudConfig: value => draftOperation("put", value, "cloud-config"),
+    loadCloudSession: () => draftOperation("get", undefined, "cloud-session"),
+    saveCloudSession: value => draftOperation("put", value, "cloud-session"),
+    loadCloudCache: scope => draftOperation("get", undefined, "cloud-cache:" + scope),
+    saveCloudCache };
 })();
 
 // Compatibility adapter: keep the original document; never rebuild it from its view.
