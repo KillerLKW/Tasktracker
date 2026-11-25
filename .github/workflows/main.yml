@@ -13,17 +13,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
-      actions: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -50,6 +44,18 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Wait for Pages artifact metadata
         shell: bash
         env:
@@ -57,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in {1..20}; do
-            count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length')
+            count=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length')
             if [ "$count" = "1" ]; then
               echo "Pages artifact is available."
               exit 0
