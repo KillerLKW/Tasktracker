@@ -2,7 +2,10 @@
 
 // Public Google Cloud identifiers only. No client secret or service-account key.
 const trackerDrive = (() => {
-  const defaults = { clientId: '', apiKey: '' };
+  const defaults = {
+    clientId: '368601553759-9s51ks2idnt64ron9sfofibk4js2qu51.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDNLtOrf6UFvntJBy70BsxxT-tC4PYP1CI'
+  };
   const scope = 'https://www.googleapis.com/auth/drive.file';
   const fields = 'id,title,mimeType,etag,version,labels(trashed)';
   let config = null, session = null, ready = false, preparing = null;

@@ -2,6 +2,12 @@
 
 Die Website läuft unter [killerlkw.github.io/Tasktracker](https://killerlkw.github.io/Tasktracker/). Die Tracker bleiben normale JSON-Dateien in deinem Google Drive. Auf jedem Gerät dieselbe Datei auswählen. Pi, VPN und Supabase werden dafür nicht gebraucht.
 
+## Anmeldung auf der eingerichteten Website
+
+Die öffentliche Client-ID und der Browser-API-Key sind für diese Website bereits hinterlegt. **Einstellungen → Google Drive → Google-Anmeldung laden** wählen, danach **Mit Google verbinden**. Mit dem bei Google als Testnutzer eingetragenen Konto anmelden. Anschließend **Andere Drive-Datei auswählen** verwenden oder den aktuellen lokalen Tracker als neue Drive-Datei speichern. Auf weiteren Geräten dieselbe Datei auswählen. Die Projektangaben müssen dort nicht erneut eingegeben werden, solange keine eigenen Angaben im Browser gespeichert wurden.
+
+Die folgenden Schritte brauchst du nur zur Verwaltung der Google-Konfiguration oder für eine eigene Installation.
+
 Die Google-Verbindung dieses Chats und die Anmeldung deiner Website sind getrennt. Für die Website brauchst du einmalig ein Google-Cloud-Projekt. Benötigt werden ausschließlich die öffentliche OAuth-Client-ID und ein auf deine Website beschränkter Browser-API-Key. Ein Client Secret, Kontopasswort oder Dienstkontoschlüssel gehört niemals in die App oder ins Repository.
 
 ## 1. Projekt und APIs
