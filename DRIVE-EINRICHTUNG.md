@@ -38,9 +38,15 @@ Die Google-Oberfläche kann deutsch oder englisch angezeigt werden. Bei einer Wa
 ## 4. API-Key für die Dateiauswahl
 
 1. **APIs und Dienste → Anmeldedaten → Anmeldedaten erstellen → API-Schlüssel** öffnen.
-2. Den Schlüssel bearbeiten. Unter **Anwendungseinschränkungen** **Websites / HTTP-Verweis-URLs** wählen und hinzufügen:
+2. Den Schlüssel bearbeiten. Unter **Anwendungseinschränkungen** **Websites / HTTP-Verweis-URLs** wählen und diese drei Einträge hinzufügen:
 
-   `https://killerlkw.github.io/Tasktracker/*`
+   `https://killerlkw.github.io`
+
+   `https://killerlkw.github.io/*`
+
+   `https://docs.google.com/*`
+
+   Eine frühere Beschränkung nur auf `/Tasktracker/*` ersetzen: Browser senden bei Anfragen an Google häufig nur die Herkunftsadresse ohne Pfad. Google Picker benötigt zusätzlich seine eigene iframe-Adresse `docs.google.com`. Die Website verwendet dafür die Referrer-Policy `strict-origin-when-cross-origin`.
 
 3. Unter **API-Einschränkungen → Schlüssel einschränken** die **Google Picker API** auswählen und speichern.
 4. Den API-Key kopieren. Dies ist ein öffentlicher Browserschlüssel; die Einschränkungen sind wichtig. Änderungen bei Google können etwas Zeit bis zur Aktivierung brauchen.
@@ -69,10 +75,10 @@ Client-ID und eingeschränkter API-Key können später als öffentliche App-Konf
 
 - **origin_mismatch:** OAuth-Quelle ohne Pfad prüfen: `https://killerlkw.github.io`.
 - **access_denied:** Im Testmodus das verwendete Google-Konto als Testnutzer eintragen und `drive.file` zulassen.
-- **Dateiauswahl verweigert / API-Key ungültig:** Picker API, API-Key-Einschränkung und Website-Pfad einschließlich `/Tasktracker/*` prüfen. Client und Key müssen zum selben Cloud-Projekt gehören.
+- **Dateiauswahl verweigert / API-Key ungültig:** Picker API, API-Key-Einschränkung und die drei Website-Einträge aus Schritt 4 prüfen. Eine Einschränkung nur auf den Pfad `/Tasktracker/*` reicht nicht aus. Client und Key müssen zum selben Cloud-Projekt gehören.
 - **Datei nicht gefunden:** Mit dem richtigen Konto anmelden und die Datei erneut über **Datei auswählen** freigeben.
 - **Versionsschutz nicht bestätigt:** Nicht durch ungeschützte Schreibzugriffe umgehen. Lokalen Stand exportieren und die konkrete Fehlermeldung prüfen lassen.
 
 Die Verbindung muss nach Eintragung deiner Projektangaben einmal mit dem echten Google-Konto geprüft werden. Automatisierte Tests verwenden einen simulierten Google-Server und ersetzen diese Prüfung nicht.
 
-Offizielle Anleitungen: [Google-Anmeldung und Token-Laufzeit](https://developers.google.com/identity/oauth2/web/guides/use-token-model), [Google Picker](https://developers.google.com/workspace/drive/picker/guides/web-picker), [Drive-Berechtigungen](https://developers.google.com/workspace/drive/api/guides/api-specific-auth).
+Offizielle Anleitungen: [Google-Anmeldung und Token-Laufzeit](https://developers.google.com/identity/oauth2/web/guides/use-token-model), [Google Picker](https://developers.google.com/workspace/drive/picker/guides/web-picker), [Picker-API-Key und erlaubte Websites](https://developers.google.com/workspace/drive/picker/guides/web-picker-sample), [Drive-Berechtigungen](https://developers.google.com/workspace/drive/api/guides/api-specific-auth).
