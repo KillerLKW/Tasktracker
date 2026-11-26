@@ -4,7 +4,18 @@ Statische Web-App für Aufgaben, Projekte, Wochen- und Semesterplanung sowie Sta
 
 ## Stand der GitHub-Veröffentlichung
 
-Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Die GitHub-Version wird vorerst bewusst **ohne Cloud-Synchronisierung** betrieben. Aufgaben werden auf dem jeweiligen Gerät automatisch im Browser gespeichert. Eine Installation auf mehreren Geräten führt deshalb zu getrennten Datenbeständen.
+Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Sie kann den gemeinsamen Tracker auf dem Pi über HTTPS laden und in Echtzeit synchronisieren. Ohne bewusst eingerichtete Pi-Verbindung werden Aufgaben weiterhin nur auf dem jeweiligen Gerät gespeichert. Es gibt keine Supabase-Anbindung.
+
+### GitHub-Website mit dem Pi verbinden
+
+1. Im Heimnetz oder mit aktivem VPN die lokale Datei `Pi-Sync-updaten.cmd` ausführen. Sie aktualisiert ausschließlich den Pi-Dienst und dessen HTTPS-Route; Trackerdatei, Sicherungen und vorhandener Freigabeschlüssel bleiben erhalten. SSH- und gegebenenfalls sudo-Anmeldung erfolgen interaktiv. Standardziel ist `ludwig@homeserver.fritz.box`.
+2. Auf jedem Gerät `https://homeserver.fritz.box/` im Browser öffnen und prüfen, dass HTTPS ohne Zertifikatsfehler funktioniert. Das vorhandene lokale Stammzertifikat muss auf dem Gerät als vertrauenswürdig eingerichtet sein. Die Zertifikatsprüfung wird von der App nicht umgangen.
+3. Auf der GitHub-Website **Einstellungen → Synchronisierung** öffnen. Als Pi-Adresse `https://homeserver.fritz.box` und den vorhandenen Freigabeschlüssel eintragen. **Pi-Tracker laden** wählen. Wenn der Browser nach lokalem Netzwerkzugriff fragt, diesen für die Tracker-Website erlauben.
+4. Auf dem zweiten Gerät dieselbe Verbindung einrichten. Beide bearbeiten dann dieselbe Datei `/var/lib/tasktracker2-sync/tracker.json` auf dem Pi. Änderungen werden automatisch gespeichert und per Long Polling an geöffnete Geräte übertragen. Beim Neuladen wird eine zuvor bewusst gespeicherte Verbindung wieder aufgenommen.
+
+**Aktuellen Stand als Erstkopie auf den Pi laden** ist nur für einen noch leeren Pi-Speicher gedacht. Eine vorhandene Trackerdatei wird dadurch nicht überschrieben. Parallele Bearbeitungen werden mit Versionsvergleich und Dreiwege-Zusammenführung geschützt; widersprüchliche Änderungen erfordern eine Auswahl. Der JSON-Export bleibt nutzbar.
+
+Der Pi benötigt das neue `Server/tracker-api.py`. Die Browserfreigabe erlaubt standardmäßig ausschließlich `https://killerlkw.github.io` sowie die Pi-Website selbst. Sie gibt keine Daten ohne Freigabeschlüssel frei. Eigene Website-Domains müssen ausdrücklich über `TASKTRACKER2_ALLOWED_ORIGINS` im Pi-Dienst freigegeben werden. Der Dienst bleibt hinter Nginx auf Loopback-Port 8794 gebunden; es wird kein zusätzlicher öffentlicher Port geöffnet. Für die Nutzung unterwegs bleibt das VPN erforderlich.
 
 ### Verwendung im Alltag
 
@@ -14,9 +25,9 @@ Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Die GitHu
 - In unterstützten Desktop-Browsern lässt sich zusätzlich eine Datei zum automatischen Speichern verbinden. Nicht unterstützte Ordner- und Dateifunktionen werden ausgeblendet.
 - Falls angeboten, kann **Gerätespeicher dauerhaft anfordern** den Browser um dauerhafte Speicherung bitten. Die Entscheidung trifft der Browser. Das ersetzt keinen JSON-Export; beim bewussten Löschen der Website-Daten wird auch dieser Speicher entfernt.
 
-Zum manuellen Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Getrennte Bearbeitungen auf zwei Geräten werden nicht zusammengeführt. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
+Ohne Pi-Verbindung zum Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Im geöffneten Pi-Tracker werden Änderungen automatisch gemeinsam gespeichert. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
 
-Der Pi wird von der GitHub-Pages-Version nicht angesprochen. Es werden keine Aufgaben, Sicherungen, Zertifikate oder Zugangsschlüssel mit veröffentlicht. Die unmarkierten Originaldateien können weiterhin für den bisherigen lokalen/Pi-Betrieb genutzt werden.
+Ohne explizite Verbindung wird der Pi von der GitHub-Pages-Version nicht angesprochen. Aufgaben, Sicherungen, Zertifikate und Freigabeschlüssel werden nicht im Repository veröffentlicht. Die Website vom Pi bleibt ebenfalls nutzbar.
 
 ## 1. Veröffentlichung vorbereiten
 
@@ -55,19 +66,19 @@ Die Standardadresse ist `https://DEIN-BENUTZERNAME.github.io/tasktracker/`. Den 
 
 Vor dem Wechsel einen aktuellen JSON-Export des bisherigen Trackers sichern. Auf der veröffentlichten Website **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** wählen und den eigenen Export bewusst öffnen. Der Start unter GitHub Pages besitzt einen anderen Browser-Speicherbereich als die lokale Datei oder die Pi-Adresse; bestehende Browserdaten werden nicht automatisch übertragen.
 
-Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository und synchronisiert sie noch nicht zwischen Geräten.
+Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository; die gemeinsame Synchronisierung übernimmt der ausdrücklich verbundene Pi.
 
 ## Spätere Änderungen veröffentlichen
 
 Im Ursprungsprojekt das Paket erneut erstellen. Die sechs aktualisierten Website-Dateien und gegebenenfalls den Workflow in das bereits vorhandene lokale Git-Repository übernehmen; dessen `.git`-Ordner erhalten. Vor Commit/Push die Dateiliste prüfen. Jeder Push auf `main` führt die automatische Veröffentlichung aus. Der Pi-Updater wird dafür nicht verwendet.
 
-## Noch offen: gemeinsamer Cloud-Datenbestand
+## Speicherung auf dem Pi
 
-Für Echtzeit-Synchronisierung ohne Pi wäre ein eigener Cloud-Datenzugriff mit Anmeldung, Zugriffsregeln, Versions-/Konfliktschutz und Export erforderlich. Der Nutzer hat am 25.11.2026 vorerst den Betrieb ohne Cloud-Synchronisierung gewählt. Vor dem Abschalten des Pi einen aktuellen JSON-Export sichern und in der GitHub-Version prüfen.
+Der gemeinsame Datenbestand liegt weiterhin auf dem Pi. GitHub liefert nur die Website aus. Das Dienst-Update verändert keine Aufgaben und setzt den Freigabeschlüssel nicht zurück. Vor jeder geänderten Trackerdatei legt der Dienst eine Sicherung im Unterordner `backups` an; Schreibvorgänge erfolgen atomar und erfordern eine passende Dateiversion.
 
 ## Referenzen
 
 - [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 - [GitHub Pages mit eigenen Actions-Workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 
-Stand: 25.11.2026. Die Veröffentlichung der Website überträgt keine persönlichen Aufgaben; diese werden bewusst per Trackerdatei importiert.
+Stand: 26.11.2026. Die Veröffentlichung der Website überträgt keine persönlichen Aufgaben; ein vorhandener Tracker wird bewusst importiert oder über „Pi-Tracker laden“ geöffnet.

@@ -431,7 +431,8 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 #tracker-file-list { list-style: none; display: grid; gap: 4px; margin: 0; padding: 0; }
 #tracker-file-list .button { width: 100%; justify-content: flex-start; overflow-wrap: anywhere; }
 
-#pi-key { display: block; width: min(100%, 420px); padding: 10px 12px; margin-top: 6px; min-height: 44px; border: 1px solid var(--control-border); border-radius: 8px; color: inherit; background: var(--surface); font: inherit; }
+#pi-sync-controls label { display: block; margin-top: 12px; font-size: 14px; }
+#pi-key, #pi-address { display: block; width: min(100%, 420px); min-width: 0; padding: 10px 12px; margin-top: 6px; min-height: 44px; border: 1px solid var(--control-border); border-radius: 8px; color: inherit; background: var(--surface); font: inherit; }
 .sync-conflicts { width: min(900px, calc(100% - 32px)); }
 .sync-conflicts fieldset { margin: 18px 0; padding: 12px; border: 1px solid var(--border); min-width: 0; }
 .sync-conflicts legend { font-weight: 600; overflow-wrap: anywhere; }

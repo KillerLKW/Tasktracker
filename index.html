@@ -8,9 +8,9 @@
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=github-local-2">
+    <link rel="stylesheet" href="styles.css?v=github-pi-1">
     <script src="storage.js?v=editor-only-2" defer></script>
-    <script src="app.js?v=github-local-2" defer></script>
+    <script src="app.js?v=github-pi-1" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -143,9 +143,11 @@
         </section>
         <section class="settings-card" aria-labelledby="settings-sync-title">
           <h2 id="settings-sync-title">Synchronisierung</h2>
-          <p id="github-hosting-note" class="settings-hint" hidden>Du verwendest den Tracker ohne Cloud-Synchronisierung. Jedes Gerät hat einen eigenen Datenbestand. Zum Übertragen exportiere eine Trackerdatei und importiere sie auf dem anderen Gerät. Die Aufgaben werden nicht auf GitHub hochgeladen.</p>
+          <p id="github-hosting-note" class="settings-hint" hidden>GitHub stellt die Website bereit; dein Pi speichert den gemeinsamen Tracker. Alle Geräte benötigen Zugang zum Pi über dein Heimnetz oder VPN. Aufgaben und Freigabeschlüssel werden nicht auf GitHub hochgeladen.</p>
           <div id="pi-sync-controls">
           <p>Geräte mit dem Freigabeschlüssel können den gemeinsamen Tracker auf dem Pi laden und bearbeiten.</p>
+          <label for="pi-address">HTTPS-Adresse deines Pi</label>
+          <input id="pi-address" type="url" placeholder="https://homeserver.fritz.box" autocomplete="off" autocapitalize="off" spellcheck="false">
           <label for="pi-key">Freigabeschlüssel</label>
           <input id="pi-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64">
           <div class="file-actions">
@@ -153,7 +155,9 @@
             <button class="button" id="pi-initialize" type="button" disabled>Aktuellen Stand als Erstkopie auf den Pi laden</button>
             <button class="button button-primary" id="pi-save" type="button" hidden>Auf Pi speichern</button>
           </div>
-          <p class="settings-hint">Lege die Erstkopie einmal auf dem Gerät mit den aktuellen Aufgaben an. Auf weiteren Geräten genügt „Pi-Tracker laden“. Gespeicherte Bearbeitungen werden automatisch zum Pi übertragen und auf geöffneten Geräten angezeigt.</p>
+          <p class="settings-hint">Bei bestehendem Tracker „Pi-Tracker laden“ wählen. Änderungen werden automatisch zum Pi übertragen und auf geöffneten Geräten angezeigt. Nur wenn auf dem Pi noch keine Datei liegt, kannst du deinen aktuellen Stand als Erstkopie hochladen.</p>
+          <p id="pi-connection-status" class="settings-hint" role="status"></p>
+          <p class="settings-hint">Für GitHub-Zugriff den Pi-Dienst einmal mit „Pi-Sync-updaten.cmd“ aktualisieren. Der Browser muss dem HTTPS-Zertifikat des Pi vertrauen; falls er nach lokalem Netzwerkzugriff fragt, diesen für die Tracker-Website erlauben.</p>
           </div>
         </section>
       </section>

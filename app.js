@@ -1,7 +1,7 @@
 "use strict";
 
 const githubPagesHosting = document.documentElement.dataset.hosting === "github-pages" || location.hostname.toLowerCase().endsWith(".github.io");
-document.querySelector("#pi-sync-controls").hidden = githubPagesHosting;
+document.querySelector("#pi-sync-controls").hidden = false;
 document.querySelector("#github-hosting-note").hidden = !githubPagesHosting;
 
 // Appearance is a browser preference, separate from tracker documents and tasks.
@@ -135,6 +135,8 @@ let fileBusy = true;
 let trackerFolder = null;
 let recentTracker = null;
 let piRevision = null;
+let piConnection = null;
+let piConnectionMessage = "";
 let piBaseDocument = null;
 let piSaveTimer = null;
 let piSaveBlockedRevision = null;
@@ -1268,13 +1270,15 @@ function updateFileStatus() {
   reopen.textContent = draftPending ? "Gespeicherte Datei weiterverwenden" :
     recentTracker ? "Zuletzt geöffnet: " + recentTracker.name : "Letzte Trackerdatei öffnen";
   document.querySelector("#sync-status-text").textContent = !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
-    piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : "Pi-Tracker geöffnet";
+    piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : piConnectionMessage ? "Pi-Verbindung unterbrochen" : "Pi-Tracker geöffnet";
   document.querySelector("#save-tracker").textContent = piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
   document.querySelector("#open-tracker").textContent = githubPagesHosting ? "Trackerdatei importieren" : "Trackerdatei öffnen";
   document.querySelector("#copy-tracker").hidden = githubPagesHosting && !fileDocument;
   updateStorageGuidance();
-  document.querySelector("#pi-open").disabled = githubPagesHosting || !canChangeFile() || location.protocol !== "https:";
-  document.querySelector("#pi-initialize").disabled = githubPagesHosting || !canChangeFile() || !tasksLoaded || !!pendingFileDraft || !!piRevision || location.protocol !== "https:";
+  document.querySelector("#pi-open").disabled = !canChangeFile() || location.protocol !== "https:";
+  document.querySelector("#pi-initialize").disabled = !canChangeFile() || !tasksLoaded || !!pendingFileDraft || !!piRevision || location.protocol !== "https:";
+  document.querySelector("#pi-initialize").hidden = !!piRevision;
+  document.querySelector("#pi-connection-status").textContent = piConnectionMessage || (piRevision && piConnection ? "Verbunden: " + new URL(piConnection.endpoint).origin : "Noch kein gemeinsamer Pi-Tracker geöffnet.");
   const piSave = document.querySelector("#pi-save");
   piSave.hidden = !piRevision;
   piSave.disabled = !canChangeFile() || draftPending;
@@ -2179,12 +2183,42 @@ document.querySelector("#options-progress-mode").addEventListener("change", upda
 document.querySelector("#options-progress").addEventListener("input", updateOptionsProgress);
 
 const piKeyInput = document.querySelector("#pi-key");
+const piAddressInput = document.querySelector("#pi-address");
 try { piKeyInput.value = localStorage.getItem("tasktracker2-pi-key") || ""; } catch {}
+try {
+  const savedEndpoint = localStorage.getItem("tasktracker2-pi-endpoint");
+  piAddressInput.value = savedEndpoint ? new URL(savedEndpoint).origin : (githubPagesHosting ? "https://homeserver.fritz.box" : location.protocol === "https:" ? location.origin : "https://homeserver.fritz.box");
+} catch {}
+
+function piEndpoint(value) {
+  let url;
+  try { url = new URL(value); } catch { throw new Error("Bitte die vollständige HTTPS-Adresse deines Pi eingeben."); }
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash ||
+      !["", "/", "/tasktracker2", "/tasktracker2/", "/tasktracker2-api/tracker"].includes(url.pathname)) {
+    throw new Error("Bitte nur die HTTPS-Adresse des Pi ohne Zugangsdaten eingeben, zum Beispiel https://homeserver.fritz.box.");
+  }
+  return url.origin + "/tasktracker2-api/tracker";
+}
+
+function piConnectionFromInputs() {
+  const endpoint = piEndpoint(piAddressInput.value.trim());
+  const key = piKeyInput.value.trim();
+  if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Bitte den Freigabeschlüssel aus der Pi-Einrichtung eingeben.");
+  return { endpoint, key };
+}
+
+function setPiConnectionMessage(message) {
+  piConnectionMessage = message;
+  document.querySelector("#pi-connection-status").textContent = message || (piRevision && piConnection ? "Verbunden: " + new URL(piConnection.endpoint).origin : "Noch kein gemeinsamer Pi-Tracker geöffnet.");
+  if (piRevision) document.querySelector("#sync-status-text").textContent = piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : message ? "Pi-Verbindung unterbrochen" : "Pi-Tracker geöffnet";
+}
 
 function rememberPi(enabled) {
   try {
     if (enabled) {
-      localStorage.setItem("tasktracker2-pi-key", piKeyInput.value.trim());
+      if (!piConnection) return;
+      localStorage.setItem("tasktracker2-pi-key", piConnection.key);
+      localStorage.setItem("tasktracker2-pi-endpoint", piConnection.endpoint);
       localStorage.setItem("tasktracker2-pi-enabled", "1");
     } else {
       localStorage.removeItem("tasktracker2-pi-enabled");
@@ -2193,22 +2227,26 @@ function rememberPi(enabled) {
 }
 
 async function piRequest(options = {}) {
-  if (githubPagesHosting) throw new Error("Die Cloud-Synchronisierung ist für diese Website noch nicht eingerichtet. Aufgaben können lokal gespeichert und als Trackerdatei gesichert werden.");
   if (location.protocol !== "https:") throw new Error("Der Pi-Tracker ist über die HTTPS-Adresse erreichbar.");
-  const key = piKeyInput.value.trim();
-  if (!/^[0-9a-f]{64}$/.test(key)) throw new Error("Bitte den Freigabeschlüssel aus der Pi-Einrichtung eingeben.");
-  const response = await fetch("/tasktracker2-api/tracker", {
+  if (!piConnection) throw new Error("Bitte unter Einstellungen die Pi-Adresse und den Freigabeschlüssel eingeben und „Pi-Tracker laden“ wählen.");
+  const { endpoint, key } = piConnection;
+  let response;
+  try { response = await fetch(endpoint, {
     ...options, credentials: "omit", redirect: "error", cache: "no-store",
     signal: AbortSignal.timeout(15000),
     headers: { Authorization: "Bearer " + key, ...options.headers }
   });
-  if (response.status === 304 && options.headers?.["If-None-Match"]) return { response };
+  } catch (error) {
+    throw new Error("Der Pi ist nicht erreichbar. Prüfe Heimnetz/VPN, HTTPS-Zertifikat und lokalen Netzwerkzugriff im Browser. Für GitHub den Pi-Dienst mit „Pi-Sync-updaten.cmd“ aktualisieren. Dein Arbeitsstand bleibt gesichert.", { cause: error });
+  }
+  if (response.status === 304 && options.headers?.["If-None-Match"]) { setPiConnectionMessage(""); return { response }; }
   if (response.status === 401) throw piResponseError(response, "Der Freigabeschlüssel wurde vom Pi abgelehnt.");
   if (response.status === 404) throw piResponseError(response, "Der Pi-Tracker ist noch nicht eingerichtet oder enthält noch keine Erstkopie.");
   if (response.status === 412) throw piResponseError(response, "Auf dem Pi liegt bereits ein anderer Stand. Deine Änderungen sind noch hier. Sichere bei Bedarf eine Kopie, bevor du den Pi-Stand neu lädst.");
   if (!response.ok) throw piResponseError(response, "Der Pi konnte den Tracker nicht verarbeiten (HTTP " + response.status + ").");
   const version = response.headers.get("ETag");
   if (!/^"[0-9a-f]{64}"$/.test(version)) throw new Error("Der Pi hat keine gültige Dateiversion geliefert.");
+  setPiConnectionMessage("");
   return { response, version };
 }
 
@@ -2249,8 +2287,9 @@ async function pollPiChanges() {
     updateFileStatus();
     try { await readTrackerFile(file, null, { startup: true, piVersion: version, live: true }); }
     finally { setFileBusy(false); }
-  } catch {
+  } catch (error) {
     piPollRetryAt = Date.now() + 5000;
+    setPiConnectionMessage(error.message || "Verbindung zum Pi unterbrochen · bitte Heimnetz oder VPN prüfen.");
   } finally {
     piPollBusy = false;
   }
@@ -2265,9 +2304,10 @@ async function openPiTracker(startup = false) {
 }
 
 async function restorePiTracker() {
-  if (githubPagesHosting) return false;
   try {
     if (location.protocol === "https:" && localStorage.getItem("tasktracker2-pi-enabled") === "1") {
+      if (githubPagesHosting && !localStorage.getItem("tasktracker2-pi-endpoint")) return false;
+      piConnection = piConnectionFromInputs();
       return await openPiTracker(true);
     }
   } catch {
@@ -2433,14 +2473,25 @@ async function savePiTracker(initialize = false) {
   } finally { setFileBusy(false); }
 }
 
-document.querySelector("#pi-open").addEventListener("click", async () => {
+async function connectPi(initialize = false) {
   if (!canChangeFile()) return;
-  setFileBusy(true);
-  try { await openPiTracker(); }
-  catch (error) { showFileError(error); }
+  const previous = piConnection;
+  try {
+    const next = piConnectionFromInputs();
+    if (piRevision && previous && (previous.endpoint !== next.endpoint || previous.key !== next.key)) {
+      throw new Error("Bitte zuerst zu den Browseraufgaben oder einer lokalen Trackerdatei wechseln, bevor du einen anderen Pi verbindest. Der aktuelle Tracker bleibt unverändert.");
+    }
+    piConnection = next;
+    if (initialize) { await savePiTracker(true); return; }
+    setFileBusy(true);
+    if (!await openPiTracker()) piConnection = previous;
+    piConnectionMessage = "";
+  }
+  catch (error) { piConnection = previous; showFileError(error); }
   finally { setFileBusy(false); }
-});
-document.querySelector("#pi-initialize").addEventListener("click", () => savePiTracker(true));
+}
+document.querySelector("#pi-open").addEventListener("click", () => connectPi());
+document.querySelector("#pi-initialize").addEventListener("click", () => connectPi(true));
 document.querySelector("#pi-save").addEventListener("click", () => savePiTracker());
 setInterval(pollPiChanges, 500);
 document.addEventListener("visibilitychange", pollPiChanges);
