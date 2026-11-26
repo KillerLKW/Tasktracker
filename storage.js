@@ -467,6 +467,23 @@ const taskStorage = (() => {
     });
   }
 
+  async function saveDriveCache(value, expectedVersion) {
+    const db = await open(), key = 'drive-cache:' + value.scope;
+    const next = { ...structuredClone(value), cacheVersion: crypto.randomUUID() };
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('recovery', 'readwrite'), store = tx.objectStore('recovery'), request = store.get(key);
+      let failure;
+      request.onsuccess = () => {
+        if (expectedVersion !== undefined && (request.result?.cacheVersion || null) !== expectedVersion) {
+          failure = new Error('Dieser Drive-Arbeitsstand wurde in einem anderen Fenster geändert. Bitte neu laden; die andere Fassung bleibt gesichert.'); tx.abort(); return;
+        }
+        store.put(next, key);
+      };
+      tx.oncomplete = () => resolve(next);
+      tx.onabort = tx.onerror = () => reject(failure || tx.error || new Error('Der Drive-Arbeitsstand konnte nicht gesichert werden.'));
+    });
+  }
+
   return { load, add, setCompleted, updateTime, updateDetails, deleteTask, loadFreeTime, updateFreeTime,
     loadProjectOrder: async () => (await draftOperation("get", undefined, "project-order")) || [], saveProjectOrder,
     loadProjectStyles: async () => (await draftOperation("get", undefined, "project-styles")) || [],
@@ -475,7 +492,10 @@ const taskStorage = (() => {
     loadTrackerFolder: () => draftOperation("get", undefined, "tracker-folder"),
     saveTrackerFolder: handle => draftOperation("put", handle, "tracker-folder"),
     loadRecentTracker: () => draftOperation("get", undefined, "recent-tracker"),
-    saveRecentTracker: record => draftOperation("put", record, "recent-tracker") };
+    saveRecentTracker: record => draftOperation("put", record, "recent-tracker"),
+    driveLoad: key => draftOperation('get', undefined, 'drive-' + key),
+    driveSave: (key, value) => draftOperation('put', value, 'drive-' + key),
+    loadDriveCache: scope => draftOperation('get', undefined, 'drive-cache:' + scope), saveDriveCache };
 })();
 
 // Compatibility adapter: keep the original document; never rebuild it from its view.

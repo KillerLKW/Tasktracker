@@ -3,14 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
     <meta name="color-scheme" content="light dark">
     <meta name="description" content="tasktracker – ein klarer Ort für deine Aufgaben.">
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=github-pi-1">
-    <script src="storage.js?v=editor-only-2" defer></script>
-    <script src="app.js?v=github-pi-1" defer></script>
+    <link rel="stylesheet" href="styles.css?v=google-drive-1">
+    <script src="storage.js?v=google-drive-1" defer></script>
+    <script src="drive.js?v=google-drive-1" defer></script>
+    <script src="app.js?v=google-drive-1" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -92,6 +94,38 @@
       </section>
 
       <section class="settings-view" id="settings-view" aria-label="Einstellungen" hidden>
+        <section class="settings-card" aria-labelledby="drive-title">
+          <h2 id="drive-title">Google Drive</h2>
+          <p id="drive-status" role="status">Trackerdateien ohne Pi und VPN synchronisieren.</p>
+          <details id="drive-setup"><summary>Google-Anbindung einrichten</summary>
+            <p class="settings-hint">Einmalige Einrichtung für diese Website: <a href="DRIVE-EINRICHTUNG.md" target="_blank" rel="noopener">Anleitung öffnen</a>. Die Verbindung dieses Chats gilt nicht automatisch für die Website.</p>
+            <form id="drive-config-form" class="drive-form">
+              <label>OAuth-Client-ID<input id="drive-client-id" type="text" required autocomplete="off" spellcheck="false" placeholder="…apps.googleusercontent.com"></label>
+              <label>Öffentlicher API-Key für die Dateiauswahl<input id="drive-api-key" type="text" required autocomplete="off" spellcheck="false" placeholder="AIza…"></label>
+              <button class="button" type="submit">Einrichtung speichern</button>
+            </form>
+          </details>
+          <div class="file-actions">
+            <button class="button button-primary" id="drive-login" type="button" hidden>Google-Anmeldung laden</button>
+            <button class="button" id="drive-disconnect" type="button" hidden>Auf diesem Gerät trennen</button>
+          </div>
+          <div id="drive-files" hidden>
+            <label for="drive-file-list">Freigegebene Trackerdateien</label>
+            <select id="drive-file-list"><option value="">Bitte auswählen</option></select>
+            <div class="file-actions">
+              <button class="button" id="drive-open" type="button">Ausgewählte Datei öffnen</button>
+              <button class="button" id="drive-pick" type="button">Andere Drive-Datei auswählen</button>
+              <button class="button" id="drive-refresh" type="button">Dateiliste aktualisieren</button>
+              <button class="button" id="drive-sync" type="button" hidden>Jetzt synchronisieren</button>
+            </div>
+            <details id="drive-create-details"><summary>Aktuellen Tracker als neue Drive-Datei speichern</summary>
+              <label for="drive-new-name">Dateiname</label><input id="drive-new-name" type="text" value="Tracker.json" maxlength="200">
+              <button class="button" id="drive-create" type="button">Neue Drive-Datei erstellen</button>
+            </details>
+          </div>
+          <p class="settings-hint">Die gewählte Datei bleibt eine normale JSON-Datei in deinem Drive. Änderungen werden auf geöffneten Geräten automatisch abgeglichen. Bei abgelaufener Google-Anmeldung bleibt dein Arbeitsstand hier gesichert; über „Google-Verbindung erneuern“ setzt du den Abgleich fort.</p>
+          <p class="form-error" id="drive-error" role="alert" hidden></p>
+        </section>
         <section class="settings-card" aria-labelledby="settings-files-title">
           <h2 id="settings-files-title">Dateien &amp; Speicherung</h2>
           <p id="settings-storage-status" role="status">Browseraufgaben · lokal gespeichert</p>
@@ -143,8 +177,8 @@
         </section>
         <section class="settings-card" aria-labelledby="settings-sync-title">
           <h2 id="settings-sync-title">Synchronisierung</h2>
-          <p id="github-hosting-note" class="settings-hint" hidden>GitHub stellt die Website bereit; dein Pi speichert den gemeinsamen Tracker. Alle Geräte benötigen Zugang zum Pi über dein Heimnetz oder VPN. Aufgaben und Freigabeschlüssel werden nicht auf GitHub hochgeladen.</p>
-          <div id="pi-sync-controls">
+          <p id="github-hosting-note" class="settings-hint" hidden>Google Drive ist die vorgesehene geräteübergreifende Speicherung. Ein bisheriger Pi-Tracker kann hier bei Bedarf einmalig geöffnet und anschließend oben als neue Drive-Datei gespeichert werden.</p>
+          <details id="pi-legacy"><summary>Bisherige Pi-Verbindung</summary><div id="pi-sync-controls">
           <p>Geräte mit dem Freigabeschlüssel können den gemeinsamen Tracker auf dem Pi laden und bearbeiten.</p>
           <label for="pi-address">HTTPS-Adresse deines Pi</label>
           <input id="pi-address" type="url" placeholder="https://homeserver.fritz.box" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -158,7 +192,7 @@
           <p class="settings-hint">Bei bestehendem Tracker „Pi-Tracker laden“ wählen. Änderungen werden automatisch zum Pi übertragen und auf geöffneten Geräten angezeigt. Nur wenn auf dem Pi noch keine Datei liegt, kannst du deinen aktuellen Stand als Erstkopie hochladen.</p>
           <p id="pi-connection-status" class="settings-hint" role="status"></p>
           <p class="settings-hint">Für GitHub-Zugriff den Pi-Dienst einmal mit „Pi-Sync-updaten.cmd“ aktualisieren. Der Browser muss dem HTTPS-Zertifikat des Pi vertrauen; falls er nach lokalem Netzwerkzugriff fragt, diesen für die Tracker-Website erlauben.</p>
-          </div>
+          </div></details>
         </section>
       </section>
       <section class="time-panel" id="time-view" hidden aria-labelledby="time-title">
@@ -360,7 +394,7 @@
         <p id="sync-conflicts-description">Diese Angaben wurden auf beiden Geräten geändert. Wähle für jeden Konflikt die gewünschte Fassung. Alle unabhängigen Änderungen bleiben erhalten.</p>
         <div id="sync-conflicts-list"></div>
         <p id="sync-conflicts-error" class="form-error" role="alert" hidden></p>
-        <p class="storage-note">Bei Abbrechen bleibt dein Entwurf gesichert. Mit „Auf Pi speichern“ kannst du die Klärung erneut starten.</p>
+        <p class="storage-note">Bei Abbrechen bleibt dein Arbeitsstand gesichert. Du kannst die Klärung in den Synchronisierungseinstellungen erneut starten.</p>
         <div class="dialog-actions"><button class="button" id="sync-conflicts-cancel" type="button">Später klären</button><button class="button button-primary" type="submit">Auswahl übernehmen</button></div>
       </form>
     </dialog>

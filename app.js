@@ -137,6 +137,8 @@ let recentTracker = null;
 let piRevision = null;
 let piConnection = null;
 let piConnectionMessage = "";
+let driveLink = null, driveReady = false, driveBusy = false, driveSyncBusy = false;
+let driveConflict = false, driveMessage = '', driveNextSync = 0;
 let piBaseDocument = null;
 let piSaveTimer = null;
 let piSaveBlockedRevision = null;
@@ -1194,6 +1196,7 @@ document.querySelector("#semester-form").addEventListener("submit", async event 
 updateView();
 
 function saveWorkingDraft(document) {
+  if (driveLink) return persistDriveCache(document);
   return taskStorage.saveDraft({ name: fileName, document, piRevision, piBaseDocument,
     resumeApproved: resumeApprovedDraft, savedBaseline: fileBaseline });
 }
@@ -1208,6 +1211,7 @@ function currentTrackerDocument() {
 }
 
 function editingStorageMessage() {
+  if (driveLink) return 'Wird auf diesem Gerät gesichert und automatisch mit Google Drive abgeglichen.';
   if (piRevision) return "Wird automatisch mit dem Pi synchronisiert.";
   if (!fileDocument) return "Wird automatisch auf diesem Gerät gespeichert.";
   if (fileHandle && !fileAutoSaveBlocked) return "Wird automatisch auf diesem Gerät und in der Trackerdatei gespeichert.";
@@ -1217,16 +1221,20 @@ function editingStorageMessage() {
 function updateStorageGuidance() {
   const directFiles = typeof window.showSaveFilePicker === "function";
   document.querySelector("#tracker-folder-controls").hidden = !trackerFolder && typeof window.showDirectoryPicker !== "function";
-  document.querySelector("#storage-explanation").textContent = githubPagesHosting
+  document.querySelector("#storage-explanation").textContent = driveLink
+    ? 'Du bearbeitest „' + driveLink.title + '“ in Google Drive. Ein JSON-Export erstellt eine zusätzliche lokale Sicherung.' : githubPagesHosting
     ? "Deine Änderungen werden automatisch in diesem Browser gespeichert und beim nächsten Öffnen wieder geladen. Über „Trackerdatei importieren“ übernimmst du deinen bisherigen Tracker."
     : "Öffne eine Trackerdatei, speichere deine Änderungen oder erstelle eine Kopie.";
-  document.querySelector("#storage-capabilities").textContent = githubPagesHosting
+  document.querySelector("#storage-capabilities").textContent = driveLink
+    ? 'Dein Arbeitsstand bleibt auch bei Verbindungsproblemen auf diesem Gerät gesichert.' : githubPagesHosting
     ? "Aufgaben bleiben auf diesem Gerät. Erstelle regelmäßig einen JSON-Export; das Löschen der Website-Daten entfernt auch den gespeicherten Arbeitsstand."
     : "";
-  document.querySelector("#file-save-hint").textContent = directFiles
+  document.querySelector("#file-save-hint").textContent = driveLink
+    ? 'Ein JSON-Export verändert die Drive-Verbindung nicht. Auf anderen Geräten dieselbe Drive-Datei auswählen.' : directFiles
     ? "Eine verbundene Datei kann zusätzlich automatisch gespeichert werden. Browseraufgaben und importierte Tracker bleiben getrennt."
     : "Dieser Browser unterstützt Import und Download. Eine Datei in „Dateien“ wird dadurch nicht automatisch überschrieben; exportiere deinen aktuellen Stand zur Sicherung oder Übertragung.";
-  document.querySelector("#semester-storage-note").textContent = piRevision
+  document.querySelector("#semester-storage-note").textContent = driveLink
+    ? 'Semesterstart, Dauer und Pausen werden mit der Drive-Datei auf deine Geräte übertragen.' : piRevision
     ? "Semesterstart, Dauer und Pausen werden automatisch mit dem Pi synchronisiert."
     : "Semesterstart, Dauer und Pausen werden auf diesem Gerät gespeichert und beim JSON-Export mitgesichert.";
 }
@@ -1253,7 +1261,8 @@ function trackerDraftPending() {
 }
 
 function updateFileStatus() {
-  document.querySelector("#settings-storage-status").textContent = fileDocument
+  document.querySelector("#settings-storage-status").textContent = driveLink
+    ? driveLink.title + (fileDirty ? ' · Änderungen lokal gesichert, Übertragung ausstehend' : ' · Google Drive') : fileDocument
     ? `${fileName} · ${fileDirty ? (piRevision ? "Änderungen noch nicht auf Pi gespeichert" : "Änderungen noch nicht in Datei gespeichert") : fileMessage || "Datei geöffnet"}`
     : fileMessage || "Browseraufgaben · lokal gespeichert";
   document.querySelector("#browser-tasks").hidden = !fileDocument;
@@ -1263,17 +1272,17 @@ function updateFileStatus() {
   document.querySelector("#tracker-draft-notice").hidden = !draftPending;
   document.querySelector("#notice-restore-draft").disabled = fileBusy || savingTask;
   const enableAutoSave = document.querySelector("#enable-file-autosave");
-  enableAutoSave.hidden = !fileDocument || !!piRevision || (!fileHandle && typeof window.showSaveFilePicker !== "function") || (!!fileHandle && !fileAutoSaveBlocked);
+  enableAutoSave.hidden = !!driveLink || !fileDocument || !!piRevision || (!fileHandle && typeof window.showSaveFilePicker !== "function") || (!!fileHandle && !fileAutoSaveBlocked);
   enableAutoSave.disabled = fileBusy || savingTask || draftPending;
   document.querySelectorAll(".project-drag-handle").forEach(button => { button.disabled = fileBusy || savingTask || draftPending; });
-  reopen.hidden = !recentTracker || !!piRevision || (!!fileDocument && !draftPending);
+  reopen.hidden = !!driveLink || !recentTracker || !!piRevision || (!!fileDocument && !draftPending);
   reopen.textContent = draftPending ? "Gespeicherte Datei weiterverwenden" :
     recentTracker ? "Zuletzt geöffnet: " + recentTracker.name : "Letzte Trackerdatei öffnen";
-  document.querySelector("#sync-status-text").textContent = !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
+  document.querySelector("#sync-status-text").textContent = driveLink ? (driveConflict ? 'Drive-Konflikt · Einstellungen' : !trackerDrive.session ? 'Google-Verbindung erneuern' : fileDirty ? 'Drive-Übertragung ausstehend' : 'Google Drive') : !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
     piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : piConnectionMessage ? "Pi-Verbindung unterbrochen" : "Pi-Tracker geöffnet";
-  document.querySelector("#save-tracker").textContent = piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
+  document.querySelector("#save-tracker").textContent = driveLink ? 'JSON-Sicherung exportieren' : piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
   document.querySelector("#open-tracker").textContent = githubPagesHosting ? "Trackerdatei importieren" : "Trackerdatei öffnen";
-  document.querySelector("#copy-tracker").hidden = githubPagesHosting && !fileDocument;
+  document.querySelector("#copy-tracker").hidden = !!driveLink || (githubPagesHosting && !fileDocument);
   updateStorageGuidance();
   document.querySelector("#pi-open").disabled = !canChangeFile() || location.protocol !== "https:";
   document.querySelector("#pi-initialize").disabled = !canChangeFile() || !tasksLoaded || !!pendingFileDraft || !!piRevision || location.protocol !== "https:";
@@ -1310,6 +1319,7 @@ function updateFileStatus() {
   document.querySelectorAll(".trash-action").forEach(button => { button.disabled = !canChangeFile() || trackerDraftPending(); });
   schedulePiSave();
   scheduleFileSave();
+  updateDriveUI();
 }
 
 function scheduleFileSave() {
@@ -1441,6 +1451,7 @@ async function readTrackerFile(file, handle = null, { startup = false, cached = 
   }
   const nextTasks = trackerFiles.toTasks(doc);
   if (!startup && !await confirmDataSwitch()) return;
+  if (driveLink) await leaveDriveTracker();
   completionUndo = null;
   document.querySelector("#completion-feedback").hidden = true;
   // All validation finishes before replacing the visible document.
@@ -1497,6 +1508,7 @@ document.querySelector("#tracker-file-input").addEventListener("change", async e
 });
 
 async function saveTracker(copy = false, automatic = false) {
+  if (driveLink) copy = true;
   if (piRevision && !copy) return savePiTracker();
   if (fileBusy || savingTask || (timeControlsReady && timeBusy) || !tasksLoaded || trackerDraftPending()) return;
   setFileBusy(true);
@@ -1522,7 +1534,9 @@ async function saveTracker(copy = false, automatic = false) {
       const writer = await handle.createWritable();
       try { await writer.write(snapshot); await writer.close(); }
       catch (error) { try { await writer.abort(); } catch {} throw error; }
-      if (piRevision) {
+      if (driveLink) {
+        fileMessage = 'Drive-Tracker als lokale Kopie gespeichert';
+      } else if (piRevision) {
         fileMessage = "Lokale Kopie gespeichert";
       } else if (fileDocument) {
         // A saved copy becomes the connected file, so future writes stay on that copy.
@@ -1549,7 +1563,9 @@ async function saveTracker(copy = false, automatic = false) {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-      if (piRevision) {
+      if (driveLink) {
+        fileMessage = 'Drive-Tracker zum Download bereitgestellt';
+      } else if (piRevision) {
         fileMessage = "Lokale Kopie zum Download bereitgestellt";
       } else if (fileDocument) {
         fileDirty = false;
@@ -1575,6 +1591,7 @@ document.querySelector("#browser-tasks").addEventListener("click", async () => {
   try {
     const [browserTasks, freeTime] = await Promise.all([taskStorage.load(), taskStorage.loadFreeTime()]);
     if (!await confirmDataSwitch()) return;
+    if (driveLink) await leaveDriveTracker();
     completionUndo = null;
     document.querySelector("#completion-feedback").hidden = true;
     fileDocument = null; piBaseDocument = null; piRevision = null; fileHandle = null; fileBaseline = null; fileName = ""; fileMessage = "";
@@ -1718,6 +1735,7 @@ document.querySelector("#refresh-tracker-folder").addEventListener("click", asyn
 });
 
 async function restoreTrackerSession() {
+  if (await restoreDriveTracker()) return;
   const [draft, folder, recent] = await Promise.allSettled([
     taskStorage.loadDraft(), taskStorage.loadTrackerFolder(), taskStorage.loadRecentTracker()
   ]);
@@ -2219,6 +2237,7 @@ function rememberPi(enabled) {
       if (!piConnection) return;
       localStorage.setItem("tasktracker2-pi-key", piConnection.key);
       localStorage.setItem("tasktracker2-pi-endpoint", piConnection.endpoint);
+      localStorage.setItem('tasktracker-v2-sync-provider', 'pi');
       localStorage.setItem("tasktracker2-pi-enabled", "1");
     } else {
       localStorage.removeItem("tasktracker2-pi-enabled");
@@ -2306,6 +2325,7 @@ async function openPiTracker(startup = false) {
 async function restorePiTracker() {
   try {
     if (location.protocol === "https:" && localStorage.getItem("tasktracker2-pi-enabled") === "1") {
+      if (githubPagesHosting && localStorage.getItem('tasktracker-v2-sync-provider') !== 'pi') return false;
       if (githubPagesHosting && !localStorage.getItem("tasktracker2-pi-endpoint")) return false;
       piConnection = piConnectionFromInputs();
       return await openPiTracker(true);
@@ -2368,7 +2388,7 @@ function choosePiConflicts(base, local, remote, wholeDocument = false) {
       const label = document.createElement("label"); label.className = "sync-conflict-choice";
       const input = document.createElement("input");
       input.type = "radio"; input.name = "conflict-" + index; input.value = side; input.required = true;
-      const title = document.createElement("strong"); title.textContent = side === "local" ? "Dieses Gerät" : "Pi / anderes Gerät";
+      const title = document.createElement("strong"); title.textContent = side === "local" ? "Dieses Gerät" : driveLink ? 'Google Drive / anderes Gerät' : "Pi / anderes Gerät";
       const content = document.createElement("pre");
       content.textContent = syncConflictValue(conflict[side], conflict.path, side === "local" ? local : remote);
       label.append(input, title, content); choices.append(label);
@@ -2477,6 +2497,7 @@ async function connectPi(initialize = false) {
   if (!canChangeFile()) return;
   const previous = piConnection;
   try {
+    if (initialize && driveLink) throw new Error('Bitte zuerst zu Browseraufgaben oder einer lokalen Trackerdatei wechseln, bevor du eine Erstkopie auf dem Pi anlegst.');
     const next = piConnectionFromInputs();
     if (piRevision && previous && (previous.endpoint !== next.endpoint || previous.key !== next.key)) {
       throw new Error("Bitte zuerst zu den Browseraufgaben oder einer lokalen Trackerdatei wechseln, bevor du einen anderen Pi verbindest. Der aktuelle Tracker bleibt unverändert.");
@@ -2590,5 +2611,190 @@ document.querySelector("#editor-keep").addEventListener("click", () => {
   editorElements(closingEditor).dialog.close(); editorSessions.delete(closingEditor); document.querySelector("#editor-close-dialog").close();
 });
 window.addEventListener("beforeunload", () => { persistEditor("task"); persistEditor("options"); });
+
+function driveScope(fileId, accountId = trackerDrive.session?.accountId) {
+  if (!trackerDrive.config || !accountId) throw new Error('Bitte zuerst mit Google verbinden.');
+  return trackerDrive.config.clientId + '|' + accountId + '|' + fileId;
+}
+function driveCache(document, link = driveLink) { return { ...structuredClone(link), working: structuredClone(document), enabled: true }; }
+async function persistDriveCache(document) {
+  trackerMerge.validate(document);
+  const saved = await taskStorage.saveDriveCache(driveCache(document), driveLink.cacheVersion);
+  driveLink.cacheVersion = saved.cacheVersion; driveNextSync = 0;
+}
+function driveError(error) {
+  const output = document.querySelector('#drive-error');
+  output.textContent = error?.message || 'Die Drive-Verbindung konnte nicht hergestellt werden. Dein Arbeitsstand bleibt auf diesem Gerät.';
+  output.hidden = false;
+}
+function updateDriveUI() {
+  const configured = !!trackerDrive.config, signedIn = !!trackerDrive.session;
+  const busy = driveBusy || fileBusy || savingTask || (timeControlsReady && timeBusy);
+  document.querySelector('#drive-login').hidden = !configured;
+  document.querySelector('#drive-login').textContent = !trackerDrive.ready ? 'Google-Anmeldung laden' : signedIn ? 'Google-Verbindung erneuern' : 'Mit Google verbinden';
+  document.querySelector('#drive-disconnect').hidden = !signedIn && !driveLink;
+  document.querySelector('#drive-files').hidden = !signedIn;
+  document.querySelector('#drive-sync').hidden = !driveLink;
+  document.querySelector('#drive-sync').textContent = driveConflict ? 'Konflikte klären' : 'Jetzt synchronisieren';
+  for (const control of document.querySelectorAll('#drive-config-form input, #drive-config-form button, #drive-login, #drive-disconnect, #drive-files button, #drive-file-list, #drive-new-name')) control.disabled = busy || driveSyncBusy;
+  document.querySelector('#drive-status').textContent = !driveReady ? 'Drive-Verbindung wird vorbereitet …' : !configured
+    ? 'Noch nicht eingerichtet. Der Tracker bleibt auf diesem Gerät nutzbar.'
+    : driveMessage || (driveLink ? !signedIn ? 'Arbeitsstand wieder geöffnet · bitte Google-Verbindung erneuern.' : fileDirty ? 'Änderungen lokal gesichert · Übertragung ausstehend' : '„' + driveLink.title + '“ · automatisch mit Google Drive verbunden'
+      : signedIn ? 'Mit ' + trackerDrive.session.displayName + ' verbunden. Eine Trackerdatei auswählen oder eine neue Kopie erstellen.' : 'Projekt eingerichtet. Über den Anmeldeknopf mit Google verbinden.');
+}
+async function applyDriveRecord(record, working = record.document, expectedVersion = driveLink?.cacheVersion, accountId = trackerDrive.session?.accountId) {
+  trackerMerge.validate(working); trackerMerge.validate(record.document);
+  if (!/^"[^"\r\n]+"$/.test(record.etag) || !/^[A-Za-z0-9_-]{6,200}$/.test(record.id)) throw new Error('Ungültiger gespeicherter Drive-Stand.');
+  const link = { scope: driveScope(record.id, accountId), clientId: trackerDrive.config.clientId, accountId,
+    fileId: record.id, title: record.title, etag: record.etag, base: structuredClone(record.document), enabled: true };
+  const persisted = await taskStorage.saveDriveCache(driveCache(working, link), expectedVersion);
+  link.cacheVersion = persisted.cacheVersion;
+  await taskStorage.driveSave('active', { scope: link.scope, clientId: link.clientId, accountId, fileId: link.fileId, enabled: true });
+  driveLink = link; fileDocument = structuredClone(working); tasks = trackerFiles.toTasks(fileDocument);
+  fileHandle = null; fileBaseline = null; fileName = record.title || 'Drive-Tracker.json';
+  piRevision = null; piBaseDocument = null; pendingFileDraft = null;
+  fileDirty = !trackerMerge.equal(working, record.document); fileAutoSaveBlocked = true; tasksLoaded = true;
+  completionUndo = null; driveConflict = false; driveMessage = '';
+  document.querySelector('#completion-feedback').hidden = true;
+  rememberPi(false);
+  try { localStorage.setItem('tasktracker-v2-sync-provider', 'drive'); } catch {}
+  updateProjectOptions(); refreshHomeTasks(); updateFileStatus();
+}
+async function leaveDriveTracker() {
+  if (!driveLink) return;
+  const cache = driveCache(fileDocument); cache.enabled = false;
+  await taskStorage.saveDriveCache(cache, driveLink.cacheVersion);
+  await taskStorage.driveSave('active', { scope: driveLink.scope, clientId: driveLink.clientId, accountId: driveLink.accountId, fileId: driveLink.fileId, enabled: false });
+  driveLink = null; driveConflict = false; driveMessage = '';
+}
+async function restoreDriveTracker() {
+  try {
+    await trackerDrive.init(); driveReady = true;
+    if (trackerDrive.config) {
+      document.querySelector('#drive-client-id').value = trackerDrive.config.clientId;
+      document.querySelector('#drive-api-key').value = trackerDrive.config.apiKey;
+    } else document.querySelector('#drive-setup').open = true;
+    updateDriveUI();
+    const active = await taskStorage.driveLoad('active');
+    if (!active?.enabled || active.clientId !== trackerDrive.config?.clientId || (trackerDrive.session && active.accountId !== trackerDrive.session.accountId)) return false;
+    const saved = await taskStorage.loadDriveCache(active.scope);
+    if (!saved || saved.scope !== driveScope(active.fileId, active.accountId) || saved.accountId !== active.accountId || saved.clientId !== active.clientId) throw new Error('Der gespeicherte Drive-Arbeitsstand gehört zu einem anderen Konto oder Projekt und wurde nicht geladen.');
+    await applyDriveRecord({ id: saved.fileId, title: saved.title, etag: saved.etag, document: saved.base }, saved.working, saved.cacheVersion, active.accountId);
+    return true;
+  } catch (error) { driveReady = true; driveError(error); return false; }
+}
+function canApplyDrive() {
+  return !!driveLink && trackerDrive.session?.accountId === driveLink.accountId && trackerDrive.config?.clientId === driveLink.clientId &&
+    canChangeFile() && !taskDialog.open && !optionsDialog.open && !semesterDialog.open && !syncConflictDialog.open && !document.querySelector('.project-menu-row.is-dragging');
+}
+async function syncDriveTracker(resolveConflicts = false) {
+  if (driveSyncBusy || driveBusy || !canApplyDrive() || (driveConflict && !resolveConflicts)) return;
+  driveSyncBusy = true; driveNextSync = Date.now() + 3000; updateDriveUI();
+  const scope = driveLink.scope;
+  try {
+    if (!navigator.onLine) throw new Error('Offline · Änderungen bleiben auf diesem Gerät und werden nach der Wiederverbindung abgeglichen.');
+    let remote = await trackerDrive.get(driveLink.fileId, driveLink.etag);
+    if (!canApplyDrive() || driveLink.scope !== scope) return;
+    if (remote.unchanged && !fileDirty) { driveMessage = ''; document.querySelector('#drive-error').hidden = true; return; }
+    if (remote.unchanged) remote = await trackerDrive.get(driveLink.fileId);
+    if (!canApplyDrive() || driveLink.scope !== scope) return;
+    const cache = await taskStorage.loadDriveCache(scope);
+    if (cache?.cacheVersion !== driveLink.cacheVersion) throw new Error('Der Drive-Arbeitsstand wurde in einem anderen Fenster geändert. Bitte neu laden.');
+    if (!canApplyDrive() || driveLink.scope !== scope) return;
+    const snapshot = structuredClone(fileDocument);
+    let base = driveLink.base;
+    if (snapshot.id !== remote.document.id || base.id !== snapshot.id) base = null;
+    const plan = trackerMerge.plan(base, snapshot, remote.document);
+    let merged;
+    try { if (!plan.conflicts.length) merged = trackerMerge.validate(plan.document); } catch { /* Ask for a complete valid version. */ }
+    if (!merged) {
+      driveConflict = true; driveMessage = 'Gleichzeitige Änderungen benötigen deine Auswahl. Öffne „Konflikte klären“.';
+      if (!resolveConflicts) return;
+      setFileBusy(true);
+      try { merged = await choosePiConflicts(base, snapshot, remote.document, !plan.conflicts.length); } finally { setFileBusy(false); }
+      if (!merged) return;
+    }
+    let saved = remote;
+    if (!trackerMerge.equal(merged, remote.document)) saved = await trackerDrive.put(driveLink.fileId, merged, remote.etag);
+    if (!canApplyDrive() || driveLink.scope !== scope || !trackerMerge.equal(fileDocument, snapshot)) return;
+    setFileBusy(true);
+    try { await applyDriveRecord(saved); } finally { setFileBusy(false); }
+    document.querySelector('#drive-error').hidden = true;
+  } catch (error) {
+    if (error.conflict) driveNextSync = Date.now() + 500;
+    else { driveMessage = error.auth ? 'Google-Verbindung bitte erneuern · Änderungen bleiben lokal gesichert.' : 'Abgleich unterbrochen · Arbeitsstand auf diesem Gerät gesichert'; driveError(error); driveNextSync = error.auth ? Infinity : Date.now() + Math.max(10000, (error.retryAfter || 0) * 1000); }
+  } finally { driveSyncBusy = false; updateFileStatus(); }
+}
+async function driveAction(action) {
+  if (driveBusy || driveSyncBusy || !canChangeFile()) return;
+  driveBusy = true; setFileBusy(true); document.querySelector('#drive-error').hidden = true;
+  try { await action(); } catch (error) { driveError(error); }
+  finally { driveBusy = false; setFileBusy(false); }
+}
+async function refreshDriveFiles() {
+  const files = await trackerDrive.files(), select = document.querySelector('#drive-file-list');
+  const selected = select.value; select.replaceChildren(new Option('Bitte auswählen', ''));
+  for (const file of files) select.append(new Option(file.title, file.id));
+  if (files.some(file => file.id === selected)) select.value = selected;
+}
+async function openDriveFile(fileId) {
+  if (!fileId) throw new Error('Bitte eine Trackerdatei auswählen.');
+  const remote = await trackerDrive.get(fileId);
+  const saved = await taskStorage.loadDriveCache(driveScope(fileId));
+  if (!await confirmDataSwitch()) return;
+  if (driveLink && driveLink.fileId !== fileId) await leaveDriveTracker();
+  if (saved?.working && !trackerMerge.equal(saved.working, saved.base)) {
+    await applyDriveRecord({ id: saved.fileId, title: saved.title, etag: saved.etag, document: saved.base }, saved.working, saved.cacheVersion);
+  } else await applyDriveRecord(remote, remote.document, saved?.cacheVersion || null);
+  driveNextSync = 0;
+}
+document.querySelector('#drive-config-form').addEventListener('submit', event => {
+  event.preventDefault(); driveAction(async () => {
+    if (driveLink) throw new Error('Bitte zuerst zu Browseraufgaben oder einer lokalen Datei wechseln, bevor du die Google-Projektangaben änderst.');
+    await trackerDrive.configure({ clientId: document.querySelector('#drive-client-id').value, apiKey: document.querySelector('#drive-api-key').value });
+    await trackerDrive.prepare(); driveMessage = 'Anmeldung vorbereitet. Jetzt „Mit Google verbinden“ wählen.';
+    document.querySelector('#drive-setup').open = false;
+  });
+});
+document.querySelector('#drive-login').addEventListener('click', () => driveAction(async () => {
+  if (!trackerDrive.ready) { await trackerDrive.prepare(); driveMessage = 'Google-Anmeldung geladen. Jetzt „Mit Google verbinden“ wählen.'; return; }
+  try { await trackerDrive.authorize(); }
+  finally {
+    if (driveLink && trackerDrive.session && driveLink.accountId !== trackerDrive.session.accountId) await showBrowserAfterDrive();
+  }
+  driveMessage = ''; driveNextSync = 0; await refreshDriveFiles();
+}));
+document.querySelector('#drive-refresh').addEventListener('click', () => driveAction(refreshDriveFiles));
+document.querySelector('#drive-open').addEventListener('click', () => driveAction(() => openDriveFile(document.querySelector('#drive-file-list').value)));
+document.querySelector('#drive-pick').addEventListener('click', () => driveAction(async () => {
+  if (!trackerDrive.ready) { await trackerDrive.prepare(); driveMessage = 'Dateiauswahl geladen. Bitte „Andere Drive-Datei auswählen“ erneut wählen.'; return; }
+  const fileId = await trackerDrive.pick(); if (fileId) { await openDriveFile(fileId); await refreshDriveFiles(); }
+}));
+document.querySelector('#drive-create').addEventListener('click', () => driveAction(async () => {
+  if (!tasksLoaded || pendingFileDraft || driveLink) throw new Error('Bitte zuerst die gewünschte lokale Trackerdatei oder die Browseraufgaben öffnen.');
+  const source = currentTrackerDocument();
+  let record = await trackerDrive.create(document.querySelector('#drive-new-name').value.trim(), source);
+  if (!trackerMerge.equal(source, record.document)) {
+    const chosen = await choosePiConflicts(null, source, record.document, true);
+    if (!chosen) return;
+    if (!trackerMerge.equal(chosen, record.document)) record = await trackerDrive.put(record.id, chosen, record.etag);
+  }
+  await applyDriveRecord(record); await refreshDriveFiles();
+}));
+document.querySelector('#drive-sync').addEventListener('click', () => { driveNextSync = 0; syncDriveTracker(true); });
+async function showBrowserAfterDrive() {
+  await leaveDriveTracker();
+  const [localTasks, freeTime, order, styles] = await Promise.all([taskStorage.load(), taskStorage.loadFreeTime(), taskStorage.loadProjectOrder(), taskStorage.loadProjectStyles()]);
+  fileDocument = null; fileHandle = null; fileBaseline = null; fileName = ''; fileDirty = false;
+  tasks = localTasks; browserFreeTime = freeTime; browserProjectOrder = order; browserProjectStyles = styles;
+  selectedProjectKey = ''; updateProjectOptions(); refreshHomeTasks();
+}
+document.querySelector('#drive-disconnect').addEventListener('click', () => driveAction(async () => {
+  if (driveLink) await showBrowserAfterDrive();
+  trackerDrive.disconnect(); driveMessage = 'Auf diesem Gerät getrennt. Deine Datei bleibt in Google Drive erhalten.';
+}));
+setInterval(() => { if (driveLink && !document.hidden && Date.now() >= driveNextSync) syncDriveTracker(); }, 500);
+window.addEventListener('online', () => { driveNextSync = 0; syncDriveTracker(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { driveNextSync = 0; syncDriveTracker(); } });
 
 loadTasks();

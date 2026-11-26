@@ -1,84 +1,51 @@
 # tasktracker
 
-Statische Web-App für Aufgaben, Projekte, Wochen- und Semesterplanung sowie Standard-/Pomodoro-Zeiterfassung. Die Website benötigt keinen Build-Schritt und keine externen JavaScript-Bibliotheken.
+Statische Web-App für Aufgaben, Projekte, Wochen- und Semesterplanung sowie Standard- und Pomodoro-Zeiterfassung.
 
-## Stand der GitHub-Veröffentlichung
+**Website:** [killerlkw.github.io/Tasktracker](https://killerlkw.github.io/Tasktracker/)
 
-Die Website läuft unter **https://killerlkw.github.io/Tasktracker/**. Sie kann den gemeinsamen Tracker auf dem Pi über HTTPS laden und in Echtzeit synchronisieren. Ohne bewusst eingerichtete Pi-Verbindung werden Aufgaben weiterhin nur auf dem jeweiligen Gerät gespeichert. Es gibt keine Supabase-Anbindung.
+## Google Drive verbinden
 
-### GitHub-Website mit dem Pi verbinden
+Unter **Einstellungen → Google Drive** eine JSON-Trackerdatei auswählen oder den aktuellen Bestand als neue Drive-Datei speichern. Auf allen Geräten dieselbe Datei verwenden. Änderungen werden lokal gesichert und bei aktiver Google-Verbindung automatisch in dieselbe Datei geschrieben. Der Pi und eine VPN-Verbindung werden dafür nicht benötigt.
 
-1. Im Heimnetz oder mit aktivem VPN die lokale Datei `Pi-Sync-updaten.cmd` ausführen. Sie aktualisiert ausschließlich den Pi-Dienst und dessen HTTPS-Route; Trackerdatei, Sicherungen und vorhandener Freigabeschlüssel bleiben erhalten. SSH- und gegebenenfalls sudo-Anmeldung erfolgen interaktiv. Standardziel ist `ludwig@homeserver.fritz.box`.
-2. Auf jedem Gerät `https://homeserver.fritz.box/` im Browser öffnen und prüfen, dass HTTPS ohne Zertifikatsfehler funktioniert. Das vorhandene lokale Stammzertifikat muss auf dem Gerät als vertrauenswürdig eingerichtet sein. Die Zertifikatsprüfung wird von der App nicht umgangen.
-3. Auf der GitHub-Website **Einstellungen → Synchronisierung** öffnen. Als Pi-Adresse `https://homeserver.fritz.box` und den vorhandenen Freigabeschlüssel eintragen. **Pi-Tracker laden** wählen. Wenn der Browser nach lokalem Netzwerkzugriff fragt, diesen für die Tracker-Website erlauben.
-4. Auf dem zweiten Gerät dieselbe Verbindung einrichten. Beide bearbeiten dann dieselbe Datei `/var/lib/tasktracker2-sync/tracker.json` auf dem Pi. Änderungen werden automatisch gespeichert und per Long Polling an geöffnete Geräte übertragen. Beim Neuladen wird eine zuvor bewusst gespeicherte Verbindung wieder aufgenommen.
+Für die erste Anmeldung sind ein eigenes Google-Cloud-Projekt, eine öffentliche OAuth-Client-ID und ein eingeschränkter Browser-API-Key erforderlich. Die Anmeldung des Drive-Connectors in einem Chat ersetzt diese Website-Anmeldung nicht. Die vollständigen Schritte stehen in **[DRIVE-EINRICHTUNG.md](DRIVE-EINRICHTUNG.md)** und sind aus den Einstellungen verlinkt. Ohne diese Projektangaben ist die App lokal nutzbar; die Drive-Verbindung ist noch nicht aktiviert.
 
-**Aktuellen Stand als Erstkopie auf den Pi laden** ist nur für einen noch leeren Pi-Speicher gedacht. Eine vorhandene Trackerdatei wird dadurch nicht überschrieben. Parallele Bearbeitungen werden mit Versionsvergleich und Dreiwege-Zusammenführung geschützt; widersprüchliche Änderungen erfordern eine Auswahl. Der JSON-Export bleibt nutzbar.
+Die App verwendet nur `drive.file`: Zugriff auf selbst erstellte oder bewusst über Google Picker freigegebene Dateien. Zugangstokens verbleiben in der Browser-Sitzung und gelangen nicht in Tracker-Exporte oder das Repository. Keine Client Secrets oder Dienstkontoschlüssel hinterlegen. Die offiziellen Google-Anmelde- und Picker-Skripte werden erst nach einer bewussten Einrichtungsaktion geladen. Für die lokale Nutzung werden sie nicht benötigt.
 
-Der Pi benötigt das neue `Server/tracker-api.py`. Die Browserfreigabe erlaubt standardmäßig ausschließlich `https://killerlkw.github.io` sowie die Pi-Website selbst. Sie gibt keine Daten ohne Freigabeschlüssel frei. Eigene Website-Domains müssen ausdrücklich über `TASKTRACKER2_ALLOWED_ORIGINS` im Pi-Dienst freigegeben werden. Der Dienst bleibt hinter Nginx auf Loopback-Port 8794 gebunden; es wird kein zusätzlicher öffentlicher Port geöffnet. Für die Nutzung unterwegs bleibt das VPN erforderlich.
+Geöffnete Geräte prüfen ungefähr alle drei Sekunden die Dateiversion. Hintergrund-Tabs können später aktualisieren. Google-Tokens laufen ab; dann **Google-Verbindung erneuern** wählen. Der letzte Arbeitsstand bleibt auch ohne Anmeldung nach dem Neuladen bearbeitbar und wird nach Wiederverbindung abgeglichen.
 
-### Verwendung im Alltag
+Unabhängige Änderungen werden anhand der zuletzt gemeinsam geladenen Version zusammengeführt. Bei widersprüchlichen Änderungen erscheint eine Auswahl. Jede Ersetzung einer vorhandenen Datei benötigt eine passende Dateiversion. Vor Schreibzugriffen prüft die App den Versionsschutz mit einer neuen temporären Testdatei und verschiebt diese anschließend in den Papierkorb. Bei fehlendem Schutz verweigert sie Schreibzugriffe. Der echte Google-Zugriff muss nach Einrichtung des Projekts noch geprüft werden; automatisierte Tests simulieren Google.
 
-- Website über die obige HTTPS-Adresse öffnen und Aufgaben direkt erstellen. Der Arbeitsstand bleibt beim Neuladen erhalten; eine Dateiverbindung ist dafür nicht erforderlich.
-- Unter **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** den bisherigen JSON-Tracker übernehmen. Importierte Daten werden getrennt von Browseraufgaben weitergeführt. Unbekannte Felder alter Dateien bleiben beim Export erhalten.
-- **Trackerdatei exportieren** sichert den gesamten geöffneten Bestand einschließlich erledigter Aufgaben, Papierkorb, Projekte, Zeiterfassung und Semestereinstellungen. Auf dem iPhone erscheint dafür der normale Download. Der Download überschreibt die zuvor importierte Datei nicht automatisch.
-- In unterstützten Desktop-Browsern lässt sich zusätzlich eine Datei zum automatischen Speichern verbinden. Nicht unterstützte Ordner- und Dateifunktionen werden ausgeblendet.
-- Falls angeboten, kann **Gerätespeicher dauerhaft anfordern** den Browser um dauerhafte Speicherung bitten. Die Entscheidung trifft der Browser. Das ersetzt keinen JSON-Export; beim bewussten Löschen der Website-Daten wird auch dieser Speicher entfernt.
+## Vorhandene Aufgaben übernehmen
 
-Ohne Pi-Verbindung zum Gerätewechsel den aktuellen Tracker exportieren und auf dem anderen Gerät importieren. Im geöffneten Pi-Tracker werden Änderungen automatisch gemeinsam gespeichert. Die HTTPS-Adresse immer gleich verwenden: lokale Datei, Pi und GitHub Pages haben getrennte Browser-Speicherbereiche.
+1. Einen aktuellen JSON-Export des bisherigen Trackers sichern.
+2. Auf der Website **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** wählen. Alternativ die bereits in Drive liegende Datei direkt über Google Picker auswählen.
+3. Bei lokal geöffnetem Bestand im Drive-Bereich **Aktuellen Tracker als neue Drive-Datei speichern** wählen.
+4. Auf dem nächsten Gerät dieselbe Datei öffnen, keine weitere Kopie anlegen.
 
-Ohne explizite Verbindung wird der Pi von der GitHub-Pages-Version nicht angesprochen. Aufgaben, Sicherungen, Zertifikate und Freigabeschlüssel werden nicht im Repository veröffentlicht. Die Website vom Pi bleibt ebenfalls nutzbar.
+Unbekannte Felder alter Trackerdateien bleiben erhalten. Aufgaben, Projekte, Papierkorb, Zeitprotokolle und Semestereinstellungen werden als vollständige JSON-Datei weitergeführt. **Trackerdatei exportieren** bleibt als unabhängige Sicherung verfügbar. Browserdaten nicht löschen, solange Änderungen noch nicht übertragen wurden.
 
-## 1. Veröffentlichung vorbereiten
+Ohne Drive-Verbindung bleiben Aufgaben und importierte Dateien lokal im jeweiligen Browser gespeichert. Desktop-Browser mit entsprechender Unterstützung können zusätzlich eine lokale Datei zum automatischen Speichern verbinden. Auf dem iPhone erfolgt der JSON-Export als normaler Download. Ein Download überschreibt keine importierte Datei. Die Option **Gerätespeicher dauerhaft anfordern** kann den Browser um dauerhafte Speicherung bitten; sie ersetzt keine Sicherung.
 
-Im ursprünglichen Windows-Projekt `GitHub-Paket-erstellen.cmd` ausführen. Es erzeugt einen neuen Ordner und ein ZIP unter `GitHub-Veroeffentlichung`. **Nur den Inhalt dieses erzeugten Paketordners veröffentlichen.** Der gesamte ursprüngliche Projektordner enthält private Trackerdateien und gehört nicht in den Web-Upload.
+## Bisheriger Pi
 
-Das Paket enthält genau zehn Dateien: sechs Website-Dateien, diese Anleitung, `.gitignore`, `.nojekyll` und `.github/workflows/pages.yml`. Dot-Dateien und der Workflow müssen erhalten bleiben. Das ZIP ist zum Transport gedacht; es darf nicht als einzelne ZIP-Datei ins Repository hochgeladen werden.
+Die bisherige Verbindung bleibt unter **Einstellungen → Synchronisierung → Bisherige Pi-Verbindung** für eine bewusste Übernahme verfügbar. Die GitHub-App kontaktiert keinen Pi allein aufgrund alter Verbindungseinträge; nur eine ausdrücklich ausgewählte Pi-Verbindung wird wiederhergestellt. Sobald eine Drive-Datei geöffnet ist, wird die Pi-Verbindung nicht mehr automatisch aufgenommen. Daten, Sicherungen und Dienste auf dem Pi werden durch die Drive-Einrichtung nicht gelöscht oder verändert.
 
-Die `.gitignore` arbeitet mit einer Positivliste. Sie verhindert versehentliche neue Git-Aufnahmen anderer Dateien; bereits früher eingecheckte Dateien werden dadurch nicht automatisch entfernt. Deshalb ein neues leeres Repository und das saubere Paket verwenden. Auch der Pages-Workflow veröffentlicht ausschließlich die sechs ausdrücklich ausgewählten Website-Dateien plus `.nojekyll`.
+## Website veröffentlichen
 
-## 2. Neues Repository auf GitHub anlegen
+Kein Build-Schritt erforderlich. Die Anwendung besteht aus `index.html`, `styles.css`, `app.js`, `storage.js`, `drive.js` und den Logo-Dateien. Die lokale App funktioniert ohne die optionalen Google-Skripte.
 
-Ein leeres Repository, zum Beispiel `tasktracker`, anlegen. Keine zusätzliche README oder Gitignore auf GitHub erzeugen. Für GitHub Pages mit GitHub Free ein öffentliches Repository verwenden; private Repositories benötigen einen passenden Tarif. Aufgaben und Schlüssel bleiben unabhängig davon privat außerhalb des Repositorys.
+`GitHub-Paket-erstellen.cmd` erzeugt ein neues Paket unter `GitHub-Veroeffentlichung`. Nur diesen Paketinhalt verwenden, niemals den gesamten ursprünglichen Projektordner hochladen. Das Paket umfasst zwölf Dateien: sieben Anwendungsdateien, README, Drive-Anleitung, `.gitignore`, `.nojekyll` und den Pages-Workflow. Private Trackerdateien, Backups, Pi-Schlüssel und Zertifikate sind ausgeschlossen.
 
-## 3. Paket hochladen
+Der Workflow kopiert ausschließlich die ausdrücklich aufgelisteten Website-Dateien und die Drive-Anleitung nach `_site`, prüft die JavaScript-Syntax und veröffentlicht mit GitHub Pages. Im vorhandenen Repository liegt der Workflow unter `.github/workflows/main.yml`; die lokale Paketvorlage heißt `.github/workflows/pages.yml`. Bei Aktualisierungen den vorhandenen Workflow ersetzen, keinen zweiten Veröffentlichungsworkflow anlegen.
 
-Im erzeugten Paketordner ein Terminal öffnen. Git muss installiert sein. `DEIN-BENUTZERNAME` und gegebenenfalls den Repositorynamen ersetzen:
-
-```powershell
-git init -b main
-git add .
-git status --short
-git commit -m "Prepare tasktracker for GitHub Pages"
-git remote add origin https://github.com/DEIN-BENUTZERNAME/tasktracker.git
-git push -u origin main
-```
-
-Bei `git status --short` dürfen nur die zehn Paketdateien erscheinen. Die Anmeldung bei GitHub erfolgt über den eigenen normalen Git-Anmeldeweg; Passwörter oder Tokens gehören nicht in diese Befehle, die URL oder die Website-Dateien.
-
-## 4. GitHub Pages einschalten
-
-Im Repository **Settings → Pages → Build and deployment → Source → GitHub Actions** auswählen. Unter **Actions** den Workflow **Publish tasktracker to GitHub Pages** bei Bedarf über **Run workflow** starten. Nach erfolgreichem Lauf steht die veröffentlichte Adresse in der Deployment-Umgebung `github-pages` und in Settings → Pages.
-
-Die Standardadresse ist `https://DEIN-BENUTZERNAME.github.io/tasktracker/`. Den vollständigen Projektpfad mit abschließendem `/` verwenden. Die internen Dateien sind relativ verlinkt; eine eigene Domain kann später eingerichtet werden. Eine leere Seite oder ein 404 direkt nach der Einrichtung ist zunächst im Actions-Lauf zu prüfen.
-
-## 5. Aufgaben übernehmen
-
-Vor dem Wechsel einen aktuellen JSON-Export des bisherigen Trackers sichern. Auf der veröffentlichten Website **Einstellungen → Dateien & Speicherung → Trackerdatei importieren** wählen und den eigenen Export bewusst öffnen. Der Start unter GitHub Pages besitzt einen anderen Browser-Speicherbereich als die lokale Datei oder die Pi-Adresse; bestehende Browserdaten werden nicht automatisch übertragen.
-
-Auf unterstützten Browsern kann **Automatisches Speichern aktivieren** die lokale Datei verbinden. Ohne diese Dateiberechtigung werden Änderungen lokal zwischengesichert bzw. als Download exportiert. GitHub Pages speichert die private Trackerdatei nicht im Repository; die gemeinsame Synchronisierung übernimmt der ausdrücklich verbundene Pi.
-
-## Spätere Änderungen veröffentlichen
-
-Im Ursprungsprojekt das Paket erneut erstellen. Die sechs aktualisierten Website-Dateien und gegebenenfalls den Workflow in das bereits vorhandene lokale Git-Repository übernehmen; dessen `.git`-Ordner erhalten. Vor Commit/Push die Dateiliste prüfen. Jeder Push auf `main` führt die automatische Veröffentlichung aus. Der Pi-Updater wird dafür nicht verwendet.
-
-## Speicherung auf dem Pi
-
-Der gemeinsame Datenbestand liegt weiterhin auf dem Pi. GitHub liefert nur die Website aus. Das Dienst-Update verändert keine Aufgaben und setzt den Freigabeschlüssel nicht zurück. Vor jeder geänderten Trackerdatei legt der Dienst eine Sicherung im Unterordner `backups` an; Schreibvorgänge erfolgen atomar und erfordern eine passende Dateiversion.
+GitHub: **Settings → Pages → Build and deployment → Source → GitHub Actions**. Jeder Push auf `main` startet die Veröffentlichung. Unter **Actions** den erfolgreichen Build und das Deployment prüfen. Aufgaben werden dadurch weder ins Repository noch auf die öffentliche Website hochgeladen.
 
 ## Referenzen
 
-- [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
-- [GitHub Pages mit eigenen Actions-Workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+- [Google Drive einrichten](DRIVE-EINRICHTUNG.md)
+- [Google-Anmeldung und Token-Laufzeit](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
+- [Google Picker](https://developers.google.com/workspace/drive/picker/guides/web-picker)
+- [GitHub Pages mit Actions](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 
-Stand: 26.11.2026. Die Veröffentlichung der Website überträgt keine persönlichen Aufgaben; ein vorhandener Tracker wird bewusst importiert oder über „Pi-Tracker laden“ geöffnet.
+Stand: 26.11.2026.

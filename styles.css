@@ -372,6 +372,11 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 @media(max-width:440px) { .options-dates { grid-template-columns: minmax(0, 1fr); gap: 0; } .task-options-dialog { padding: 16px; } }
 
 .settings-view { max-width: 900px; display: grid; gap: 20px; }
+.drive-form { display: grid; gap: 12px; margin-top: 16px; min-width: 0; }
+.drive-form label { display: grid; gap: 6px; font-size: 14px; min-width: 0; }
+.drive-form input, #drive-new-name, #drive-file-list { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; padding: 11px; margin: 6px 0 12px; border: 1px solid var(--control-border); border-radius: 8px; color: var(--text); background: var(--surface); }
+#drive-status, #drive-error { overflow-wrap: anywhere; }
+#drive-setup summary, #drive-create-details summary, #pi-legacy summary { cursor: pointer; min-height: 32px; }
 .settings-card { padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .settings-card h2 { margin: 0 0 12px; font-size: 18px; }
 .settings-card p { margin: 10px 0; font-size: 14px; line-height: 1.6; }
