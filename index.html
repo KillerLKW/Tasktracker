@@ -8,10 +8,9 @@
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=supabase-1">
-    <script src="storage.js?v=supabase-1" defer></script>
-    <script src="cloud.js?v=supabase-1" defer></script>
-    <script src="app.js?v=supabase-1" defer></script>
+    <link rel="stylesheet" href="styles.css?v=github-local-2">
+    <script src="storage.js?v=editor-only-2" defer></script>
+    <script src="app.js?v=github-local-2" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -93,34 +92,6 @@
       </section>
 
       <section class="settings-view" id="settings-view" aria-label="Einstellungen" hidden>
-        <section class="settings-card" aria-labelledby="cloud-title">
-          <h2 id="cloud-title">Cloud-Synchronisierung</h2>
-          <p id="cloud-status" role="status">Optional: Aufgaben mit Supabase zwischen deinen Geräten synchronisieren.</p>
-          <details id="cloud-setup"><summary>Supabase-Projekt einrichten</summary>
-            <p class="settings-hint">Einmal das <a href="supabase/setup.sql" target="_blank" rel="noopener">SQL-Skript</a> im Supabase SQL Editor ausführen. Danach hier Projekt-URL und öffentlichen Schlüssel eintragen. Auf weiteren Geräten dasselbe Projekt und Konto verwenden.</p>
-            <form id="cloud-config-form" class="cloud-form">
-              <label>Projekt-URL<input id="cloud-url" type="url" placeholder="https://…supabase.co" required autocomplete="off"></label>
-              <label>Publishable-Key (öffentlich)<input id="cloud-key" type="text" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sb_publishable_…"></label>
-              <button class="button" type="submit">Projekt verbinden</button>
-            </form>
-          </details>
-          <form id="cloud-auth-form" class="cloud-form" hidden>
-            <label>E-Mail<input id="cloud-email" type="email" required autocomplete="username"></label>
-            <label>Passwort<input id="cloud-password" type="password" required minlength="6" autocomplete="current-password"></label>
-            <div class="file-actions"><button class="button button-primary" type="submit" id="cloud-login">Anmelden</button><button class="button" type="submit" id="cloud-register">Konto erstellen</button></div>
-          </form>
-          <div id="cloud-account" hidden>
-            <p id="cloud-user"></p>
-            <div class="file-actions">
-              <button class="button" id="cloud-open" type="button">Cloud-Tracker öffnen</button>
-              <button class="button" id="cloud-initialize" type="button">Aktuellen Stand als Erstkopie hochladen</button>
-              <button class="button" id="cloud-sync" type="button" hidden>Jetzt synchronisieren</button>
-              <button class="button" id="cloud-logout" type="button">Auf diesem Gerät abmelden</button>
-            </div>
-          </div>
-          <p class="settings-hint">Ein Tracker pro Konto. Erstkopien werden nur auf deinen Klick hochgeladen. Änderungen im geöffneten Cloud-Tracker werden automatisch übertragen; offline bleiben sie auf diesem Gerät gesichert. JSON-Export bleibt verfügbar.</p>
-          <p class="form-error" id="cloud-error" role="alert" hidden></p>
-        </section>
         <section class="settings-card" aria-labelledby="settings-files-title">
           <h2 id="settings-files-title">Dateien &amp; Speicherung</h2>
           <p id="settings-storage-status" role="status">Browseraufgaben · lokal gespeichert</p>
@@ -172,7 +143,7 @@
         </section>
         <section class="settings-card" aria-labelledby="settings-sync-title">
           <h2 id="settings-sync-title">Synchronisierung</h2>
-          <p id="github-hosting-note" class="settings-hint" hidden>GitHub stellt die Website bereit. Ohne geöffnete Cloud-Verbindung bleibt der Datenbestand auf diesem Gerät. Die optionale Supabase-Anbindung richtest du oben unter „Cloud-Synchronisierung“ ein. Aufgaben werden nicht im GitHub-Repository gespeichert.</p>
+          <p id="github-hosting-note" class="settings-hint" hidden>Du verwendest den Tracker ohne Cloud-Synchronisierung. Jedes Gerät hat einen eigenen Datenbestand. Zum Übertragen exportiere eine Trackerdatei und importiere sie auf dem anderen Gerät. Die Aufgaben werden nicht auf GitHub hochgeladen.</p>
           <div id="pi-sync-controls">
           <p>Geräte mit dem Freigabeschlüssel können den gemeinsamen Tracker auf dem Pi laden und bearbeiten.</p>
           <label for="pi-key">Freigabeschlüssel</label>
@@ -385,7 +356,7 @@
         <p id="sync-conflicts-description">Diese Angaben wurden auf beiden Geräten geändert. Wähle für jeden Konflikt die gewünschte Fassung. Alle unabhängigen Änderungen bleiben erhalten.</p>
         <div id="sync-conflicts-list"></div>
         <p id="sync-conflicts-error" class="form-error" role="alert" hidden></p>
-        <p class="storage-note">Bei Abbrechen bleibt dein Entwurf gesichert. Du kannst die Klärung in den Synchronisierungseinstellungen erneut starten.</p>
+        <p class="storage-note">Bei Abbrechen bleibt dein Entwurf gesichert. Mit „Auf Pi speichern“ kannst du die Klärung erneut starten.</p>
         <div class="dialog-actions"><button class="button" id="sync-conflicts-cancel" type="button">Später klären</button><button class="button button-primary" type="submit">Auswahl übernehmen</button></div>
       </form>
     </dialog>

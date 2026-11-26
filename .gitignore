@@ -7,10 +7,6 @@
 !styles.css
 !app.js
 !storage.js
-!cloud.js
-!supabase/
-!supabase/setup.sql
-!supabase/README.md
 !logo.svg
 !apple-touch-icon.png
 !.github/

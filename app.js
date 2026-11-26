@@ -135,14 +135,6 @@ let fileBusy = true;
 let trackerFolder = null;
 let recentTracker = null;
 let piRevision = null;
-let cloudLink = null;
-let cloudReady = false;
-let cloudBusy = false;
-let cloudSyncBusy = false;
-let cloudConflict = false;
-let cloudMessage = "";
-let cloudNextSync = 0;
-let cloudStopRealtime = () => {};
 let piBaseDocument = null;
 let piSaveTimer = null;
 let piSaveBlockedRevision = null;
@@ -1200,7 +1192,6 @@ document.querySelector("#semester-form").addEventListener("submit", async event 
 updateView();
 
 function saveWorkingDraft(document) {
-  if (cloudLink) return persistCloudCache(document);
   return taskStorage.saveDraft({ name: fileName, document, piRevision, piBaseDocument,
     resumeApproved: resumeApprovedDraft, savedBaseline: fileBaseline });
 }
@@ -1215,7 +1206,6 @@ function currentTrackerDocument() {
 }
 
 function editingStorageMessage() {
-  if (cloudLink) return "Wird auf diesem Gerät gesichert und automatisch mit der Cloud synchronisiert.";
   if (piRevision) return "Wird automatisch mit dem Pi synchronisiert.";
   if (!fileDocument) return "Wird automatisch auf diesem Gerät gespeichert.";
   if (fileHandle && !fileAutoSaveBlocked) return "Wird automatisch auf diesem Gerät und in der Trackerdatei gespeichert.";
@@ -1225,24 +1215,16 @@ function editingStorageMessage() {
 function updateStorageGuidance() {
   const directFiles = typeof window.showSaveFilePicker === "function";
   document.querySelector("#tracker-folder-controls").hidden = !trackerFolder && typeof window.showDirectoryPicker !== "function";
-  document.querySelector("#storage-explanation").textContent = cloudLink
-    ? "Du bearbeitest den Cloud-Tracker. Ein JSON-Export erstellt eine zusätzliche Sicherung; zum Wechseln des Datenbestands kannst du eine andere Trackerdatei importieren."
-    : githubPagesHosting
+  document.querySelector("#storage-explanation").textContent = githubPagesHosting
     ? "Deine Änderungen werden automatisch in diesem Browser gespeichert und beim nächsten Öffnen wieder geladen. Über „Trackerdatei importieren“ übernimmst du deinen bisherigen Tracker."
     : "Öffne eine Trackerdatei, speichere deine Änderungen oder erstelle eine Kopie.";
-  document.querySelector("#storage-capabilities").textContent = cloudLink
-    ? "JSON-Exporte sichern deinen Cloud-Tracker zusätzlich als unabhängige Datei."
-    : githubPagesHosting
+  document.querySelector("#storage-capabilities").textContent = githubPagesHosting
     ? "Aufgaben bleiben auf diesem Gerät. Erstelle regelmäßig einen JSON-Export; das Löschen der Website-Daten entfernt auch den gespeicherten Arbeitsstand."
     : "";
-  document.querySelector("#file-save-hint").textContent = cloudLink
-    ? "Ein Export verändert die Cloud-Verbindung nicht. Weitere Geräte öffnen denselben Tracker nach der Anmeldung unter „Cloud-Synchronisierung“."
-    : directFiles
+  document.querySelector("#file-save-hint").textContent = directFiles
     ? "Eine verbundene Datei kann zusätzlich automatisch gespeichert werden. Browseraufgaben und importierte Tracker bleiben getrennt."
     : "Dieser Browser unterstützt Import und Download. Eine Datei in „Dateien“ wird dadurch nicht automatisch überschrieben; exportiere deinen aktuellen Stand zur Sicherung oder Übertragung.";
-  document.querySelector("#semester-storage-note").textContent = cloudLink
-    ? "Semesterstart, Dauer und Pausen werden mit dem Cloud-Tracker auf deine Geräte übertragen."
-    : piRevision
+  document.querySelector("#semester-storage-note").textContent = piRevision
     ? "Semesterstart, Dauer und Pausen werden automatisch mit dem Pi synchronisiert."
     : "Semesterstart, Dauer und Pausen werden auf diesem Gerät gespeichert und beim JSON-Export mitgesichert.";
 }
@@ -1269,9 +1251,7 @@ function trackerDraftPending() {
 }
 
 function updateFileStatus() {
-  document.querySelector("#settings-storage-status").textContent = cloudLink
-    ? (fileDirty ? "Cloud-Tracker · Änderungen auf diesem Gerät gesichert, Übertragung ausstehend" : "Cloud-Tracker · synchronisiert")
-    : fileDocument
+  document.querySelector("#settings-storage-status").textContent = fileDocument
     ? `${fileName} · ${fileDirty ? (piRevision ? "Änderungen noch nicht auf Pi gespeichert" : "Änderungen noch nicht in Datei gespeichert") : fileMessage || "Datei geöffnet"}`
     : fileMessage || "Browseraufgaben · lokal gespeichert";
   document.querySelector("#browser-tasks").hidden = !fileDocument;
@@ -1281,17 +1261,17 @@ function updateFileStatus() {
   document.querySelector("#tracker-draft-notice").hidden = !draftPending;
   document.querySelector("#notice-restore-draft").disabled = fileBusy || savingTask;
   const enableAutoSave = document.querySelector("#enable-file-autosave");
-  enableAutoSave.hidden = !!cloudLink || !fileDocument || !!piRevision || (!fileHandle && typeof window.showSaveFilePicker !== "function") || (!!fileHandle && !fileAutoSaveBlocked);
+  enableAutoSave.hidden = !fileDocument || !!piRevision || (!fileHandle && typeof window.showSaveFilePicker !== "function") || (!!fileHandle && !fileAutoSaveBlocked);
   enableAutoSave.disabled = fileBusy || savingTask || draftPending;
   document.querySelectorAll(".project-drag-handle").forEach(button => { button.disabled = fileBusy || savingTask || draftPending; });
-  reopen.hidden = !!cloudLink || !recentTracker || !!piRevision || (!!fileDocument && !draftPending);
+  reopen.hidden = !recentTracker || !!piRevision || (!!fileDocument && !draftPending);
   reopen.textContent = draftPending ? "Gespeicherte Datei weiterverwenden" :
     recentTracker ? "Zuletzt geöffnet: " + recentTracker.name : "Letzte Trackerdatei öffnen";
-  document.querySelector("#sync-status-text").textContent = cloudLink ? (cloudConflict ? "Cloud-Konflikt · Einstellungen" : fileDirty ? "Cloud · Übertragung ausstehend" : "Cloud synchronisiert") : !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
+  document.querySelector("#sync-status-text").textContent = !piRevision ? (githubPagesHosting ? "Auf diesem Gerät" : "Lokaler Tracker") :
     piSaveBlockedRevision === piRevision ? "Pi-Synchronisierung angehalten" : "Pi-Tracker geöffnet";
-  document.querySelector("#save-tracker").textContent = cloudLink ? "JSON-Sicherung exportieren" : piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
+  document.querySelector("#save-tracker").textContent = piRevision ? "Auf Pi speichern" : githubPagesHosting && !fileHandle ? "Trackerdatei exportieren" : "Datei speichern";
   document.querySelector("#open-tracker").textContent = githubPagesHosting ? "Trackerdatei importieren" : "Trackerdatei öffnen";
-  document.querySelector("#copy-tracker").hidden = !!cloudLink || (githubPagesHosting && !fileDocument);
+  document.querySelector("#copy-tracker").hidden = githubPagesHosting && !fileDocument;
   updateStorageGuidance();
   document.querySelector("#pi-open").disabled = githubPagesHosting || !canChangeFile() || location.protocol !== "https:";
   document.querySelector("#pi-initialize").disabled = githubPagesHosting || !canChangeFile() || !tasksLoaded || !!pendingFileDraft || !!piRevision || location.protocol !== "https:";
@@ -1326,7 +1306,6 @@ function updateFileStatus() {
   document.querySelectorAll(".trash-action").forEach(button => { button.disabled = !canChangeFile() || trackerDraftPending(); });
   schedulePiSave();
   scheduleFileSave();
-  updateCloudUI();
 }
 
 function scheduleFileSave() {
@@ -1458,7 +1437,6 @@ async function readTrackerFile(file, handle = null, { startup = false, cached = 
   }
   const nextTasks = trackerFiles.toTasks(doc);
   if (!startup && !await confirmDataSwitch()) return;
-  if (cloudLink) await leaveCloudTracker();
   completionUndo = null;
   document.querySelector("#completion-feedback").hidden = true;
   // All validation finishes before replacing the visible document.
@@ -1515,7 +1493,6 @@ document.querySelector("#tracker-file-input").addEventListener("change", async e
 });
 
 async function saveTracker(copy = false, automatic = false) {
-  if (cloudLink) copy = true; // Exporting a cloud tracker never changes its backing store.
   if (piRevision && !copy) return savePiTracker();
   if (fileBusy || savingTask || (timeControlsReady && timeBusy) || !tasksLoaded || trackerDraftPending()) return;
   setFileBusy(true);
@@ -1541,9 +1518,7 @@ async function saveTracker(copy = false, automatic = false) {
       const writer = await handle.createWritable();
       try { await writer.write(snapshot); await writer.close(); }
       catch (error) { try { await writer.abort(); } catch {} throw error; }
-      if (cloudLink) {
-        fileMessage = "Cloud-Tracker als lokale Kopie gespeichert";
-      } else if (piRevision) {
+      if (piRevision) {
         fileMessage = "Lokale Kopie gespeichert";
       } else if (fileDocument) {
         // A saved copy becomes the connected file, so future writes stay on that copy.
@@ -1570,9 +1545,7 @@ async function saveTracker(copy = false, automatic = false) {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-      if (cloudLink) {
-        fileMessage = "Cloud-Tracker zum Download bereitgestellt";
-      } else if (piRevision) {
+      if (piRevision) {
         fileMessage = "Lokale Kopie zum Download bereitgestellt";
       } else if (fileDocument) {
         fileDirty = false;
@@ -1598,7 +1571,6 @@ document.querySelector("#browser-tasks").addEventListener("click", async () => {
   try {
     const [browserTasks, freeTime] = await Promise.all([taskStorage.load(), taskStorage.loadFreeTime()]);
     if (!await confirmDataSwitch()) return;
-    if (cloudLink) await leaveCloudTracker();
     completionUndo = null;
     document.querySelector("#completion-feedback").hidden = true;
     fileDocument = null; piBaseDocument = null; piRevision = null; fileHandle = null; fileBaseline = null; fileName = ""; fileMessage = "";
@@ -1742,7 +1714,6 @@ document.querySelector("#refresh-tracker-folder").addEventListener("click", asyn
 });
 
 async function restoreTrackerSession() {
-  if (await restoreCloudTracker()) return;
   const [draft, folder, recent] = await Promise.allSettled([
     taskStorage.loadDraft(), taskStorage.loadTrackerFolder(), taskStorage.loadRecentTracker()
   ]);
@@ -2357,7 +2328,7 @@ function choosePiConflicts(base, local, remote, wholeDocument = false) {
       const label = document.createElement("label"); label.className = "sync-conflict-choice";
       const input = document.createElement("input");
       input.type = "radio"; input.name = "conflict-" + index; input.value = side; input.required = true;
-      const title = document.createElement("strong"); title.textContent = side === "local" ? "Dieses Gerät" : cloudLink ? "Cloud / anderes Gerät" : "Pi / anderes Gerät";
+      const title = document.createElement("strong"); title.textContent = side === "local" ? "Dieses Gerät" : "Pi / anderes Gerät";
       const content = document.createElement("pre");
       content.textContent = syncConflictValue(conflict[side], conflict.path, side === "local" ? local : remote);
       label.append(input, title, content); choices.append(label);
@@ -2568,195 +2539,5 @@ document.querySelector("#editor-keep").addEventListener("click", () => {
   editorElements(closingEditor).dialog.close(); editorSessions.delete(closingEditor); document.querySelector("#editor-close-dialog").close();
 });
 window.addEventListener("beforeunload", () => { persistEditor("task"); persistEditor("options"); });
-
-function cloudScope() { return trackerCloud.config?.url + "|" + trackerCloud.session?.user.id; }
-function cloudCache(document, link = cloudLink) {
-  return { ...structuredClone(link), working: structuredClone(document), enabled: true };
-}
-async function persistCloudCache(document) {
-  trackerMerge.validate(document);
-  const saved = await taskStorage.saveCloudCache(cloudCache(document), cloudLink.cacheVersion);
-  cloudLink.cacheVersion = saved.cacheVersion;
-  cloudNextSync = 0;
-}
-function cloudError(error) {
-  const output = document.querySelector("#cloud-error");
-  output.textContent = error?.message || "Die Cloud-Verbindung konnte nicht hergestellt werden. Dein Arbeitsstand bleibt auf diesem Gerät.";
-  output.hidden = false;
-}
-function updateCloudUI() {
-  const configured = !!trackerCloud.config, signedIn = !!trackerCloud.session;
-  const busy = cloudBusy || fileBusy || savingTask || (timeControlsReady && timeBusy);
-  document.querySelector("#cloud-auth-form").hidden = !configured || signedIn;
-  document.querySelector("#cloud-account").hidden = !signedIn;
-  document.querySelector("#cloud-user").textContent = signedIn ? "Angemeldet: " + (trackerCloud.session.user.email || "Dein Konto") : "";
-  for (const control of document.querySelectorAll("#cloud-config-form input, #cloud-config-form button, #cloud-auth-form input, #cloud-auth-form button, #cloud-account button")) control.disabled = busy;
-  document.querySelector("#cloud-open").hidden = !!cloudLink;
-  document.querySelector("#cloud-initialize").hidden = !!cloudLink;
-  document.querySelector("#cloud-sync").hidden = !cloudLink;
-  document.querySelector("#cloud-sync").textContent = cloudConflict ? "Konflikte klären" : "Jetzt synchronisieren";
-  document.querySelector("#cloud-status").textContent = !cloudReady ? "Cloud-Verbindung wird vorbereitet …" : !configured
-    ? "Noch kein Supabase-Projekt verbunden. Der Tracker bleibt lokal nutzbar."
-    : cloudMessage || (cloudLink ? (fileDirty ? "Änderungen auf diesem Gerät gesichert · Übertragung ausstehend" : "Cloud-Tracker synchronisiert")
-      : signedIn ? "Angemeldet. Öffne deinen Cloud-Tracker oder lade deinen aktuellen Stand als Erstkopie hoch." : "Projekt verbunden. Bitte anmelden oder ein Konto erstellen.");
-}
-async function applyCloudRecord(record, working = record.document, expectedVersion = cloudLink?.cacheVersion) {
-  trackerMerge.validate(working);
-  const link = { scope: cloudScope(), project: trackerCloud.config.url, owner: trackerCloud.session.user.id,
-    revision: record.revision, base: structuredClone(record.document), enabled: true };
-  const persisted = await taskStorage.saveCloudCache(cloudCache(working, link), expectedVersion);
-  link.cacheVersion = persisted.cacheVersion;
-  const first = !cloudLink;
-  cloudLink = link;
-  fileDocument = structuredClone(working);
-  tasks = trackerFiles.toTasks(fileDocument);
-  fileHandle = null; fileBaseline = null; fileName = "Cloud-Tracker.json";
-  piRevision = null; piBaseDocument = null; pendingFileDraft = null;
-  fileDirty = !trackerMerge.equal(working, record.document);
-  fileAutoSaveBlocked = true; tasksLoaded = true; completionUndo = null;
-  document.querySelector("#completion-feedback").hidden = true;
-  cloudConflict = false; cloudMessage = "";
-  if (first) { cloudStopRealtime(); cloudStopRealtime = trackerCloud.subscribe(() => { cloudNextSync = 0; syncCloudTracker(); }); }
-  updateProjectOptions(); refreshHomeTasks(); updateFileStatus();
-}
-async function leaveCloudTracker() {
-  if (!cloudLink) return;
-  const saved = cloudCache(fileDocument); saved.enabled = false;
-  await taskStorage.saveCloudCache(saved, cloudLink.cacheVersion);
-  cloudStopRealtime(); trackerCloud.stop(); cloudLink = null; cloudConflict = false; cloudMessage = "";
-}
-async function restoreCloudTracker() {
-  try {
-    await trackerCloud.init(); cloudReady = true;
-    if (trackerCloud.config) {
-      document.querySelector("#cloud-url").value = trackerCloud.config.url;
-      document.querySelector("#cloud-key").value = trackerCloud.config.key;
-    } else document.querySelector("#cloud-setup").open = true;
-    updateCloudUI();
-    if (!trackerCloud.session) return false;
-    const saved = await taskStorage.loadCloudCache(cloudScope());
-    if (!saved?.enabled) return false;
-    if (saved.scope !== cloudScope() || saved.owner !== trackerCloud.session.user.id || saved.project !== trackerCloud.config.url ||
-      !Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error("Der gespeicherte Cloud-Stand ist ungültig. Er wurde nicht verändert.");
-    await applyCloudRecord({ document: saved.base, revision: saved.revision }, saved.working, saved.cacheVersion);
-    return true;
-  } catch (error) { cloudReady = true; cloudError(error); return false; }
-}
-function canApplyCloud() {
-  return !!cloudLink && trackerCloud.session?.user.id === cloudLink.owner && trackerCloud.config?.url === cloudLink.project &&
-    canChangeFile() && !taskDialog.open && !optionsDialog.open && !semesterDialog.open && !syncConflictDialog.open &&
-    !document.querySelector(".project-menu-row.is-dragging");
-}
-async function syncCloudTracker(resolveConflicts = false) {
-  if (cloudSyncBusy || cloudBusy || !canApplyCloud() || (cloudConflict && !resolveConflicts)) return;
-  cloudSyncBusy = true;
-  cloudNextSync = Date.now() + 15000;
-  const scope = cloudLink.scope;
-  try {
-    if (!navigator.onLine) throw new Error("Offline · Änderungen bleiben auf diesem Gerät und werden nach der Wiederverbindung übertragen.");
-    const remote = await trackerCloud.get();
-    if (!remote) throw new Error("Der Cloud-Tracker fehlt. Dein lokaler Stand bleibt erhalten; sichere ihn als JSON-Export.");
-    if (!canApplyCloud() || cloudLink.scope !== scope) return;
-    const cache = await taskStorage.loadCloudCache(scope);
-    if (cache?.cacheVersion !== cloudLink.cacheVersion) throw new Error("Der Cloud-Arbeitsstand wurde in einem anderen Fenster geändert. Bitte neu laden.");
-    if (!canApplyCloud() || cloudLink.scope !== scope) return;
-    const snapshot = structuredClone(fileDocument);
-    let base = cloudLink.base;
-    if (snapshot.id !== remote.document.id || base.id !== snapshot.id) base = null;
-    const plan = trackerMerge.plan(base, snapshot, remote.document);
-    let merged;
-    try { if (!plan.conflicts.length) merged = trackerMerge.validate(plan.document); } catch { /* Ask for a complete, valid version. */ }
-    if (!merged) {
-      cloudConflict = true;
-      cloudMessage = "Gleichzeitige Änderungen benötigen deine Auswahl. Öffne „Konflikte klären“.";
-      if (!resolveConflicts) return;
-      setFileBusy(true);
-      try { merged = await choosePiConflicts(base, snapshot, remote.document, !plan.conflicts.length); }
-      finally { setFileBusy(false); }
-      if (!merged) return;
-    }
-    let saved = remote;
-    if (!trackerMerge.equal(merged, remote.document)) saved = await trackerCloud.put(merged, remote.revision);
-    // A user may edit or switch trackers while the request is in flight. Never adopt
-    // a stale snapshot; the next round merges those newer edits against the server.
-    if (!canApplyCloud() || cloudLink.scope !== scope || !trackerMerge.equal(fileDocument, snapshot)) return;
-    if (cloudLink.revision !== saved.revision || fileDirty || cloudConflict) {
-      setFileBusy(true);
-      try { await applyCloudRecord(saved); } finally { setFileBusy(false); }
-    }
-    cloudMessage = "Cloud-Tracker synchronisiert";
-    document.querySelector("#cloud-error").hidden = true;
-  } catch (error) {
-    if (error.conflict) { cloudNextSync = Date.now() + 250; }
-    else { cloudMessage = "Verbindung unterbrochen · Arbeitsstand auf diesem Gerät gesichert"; cloudError(error); cloudNextSync = Date.now() + 10000; }
-  } finally { cloudSyncBusy = false; updateCloudUI(); }
-}
-async function cloudAction(action) {
-  if (cloudBusy || cloudSyncBusy || !canChangeFile()) return;
-  cloudBusy = true; setFileBusy(true);
-  document.querySelector("#cloud-error").hidden = true;
-  try { await action(); }
-  catch (error) { cloudError(error); }
-  finally { cloudBusy = false; setFileBusy(false); }
-}
-document.querySelector("#cloud-config-form").addEventListener("submit", event => {
-  event.preventDefault();
-  cloudAction(async () => {
-    if (cloudLink) throw new Error("Bitte zuerst zu den Browseraufgaben oder einer anderen Trackerdatei wechseln, bevor du das Projekt änderst.");
-    await trackerCloud.configure({ url: document.querySelector("#cloud-url").value, key: document.querySelector("#cloud-key").value });
-    cloudMessage = ""; document.querySelector("#cloud-setup").open = false;
-  });
-});
-document.querySelector("#cloud-auth-form").addEventListener("submit", event => {
-  event.preventDefault();
-  const register = event.submitter?.id === "cloud-register";
-  cloudAction(async () => {
-    const email = document.querySelector("#cloud-email").value.trim(), password = document.querySelector("#cloud-password").value;
-    try {
-      if (register) {
-        const signedIn = await trackerCloud.signUp(email, password);
-        cloudMessage = signedIn ? "Konto erstellt. Du kannst jetzt den ersten Tracker hochladen." : "Bitte die Bestätigungs-E-Mail öffnen und dich anschließend hier anmelden.";
-      } else { await trackerCloud.signIn(email, password); cloudMessage = ""; }
-    } finally { document.querySelector("#cloud-password").value = ""; }
-  });
-});
-document.querySelector("#cloud-open").addEventListener("click", () => cloudAction(async () => {
-  const saved = await taskStorage.loadCloudCache(cloudScope());
-  if (saved?.working && saved?.base && !trackerMerge.equal(saved.working, saved.base)) {
-    // Resume unsent changes only for this exact account/project, then merge.
-    if (!await confirmDataSwitch()) return;
-    await applyCloudRecord({ document: saved.base, revision: saved.revision }, saved.working, saved.cacheVersion);
-  } else {
-    const record = await trackerCloud.get();
-    if (!record) throw new Error("Dieses Konto hat noch keinen Tracker. Importiere deine Trackerdatei und lade sie als Erstkopie hoch.");
-    if (!await confirmDataSwitch()) return;
-    await applyCloudRecord(record);
-  }
-  cloudNextSync = 0;
-}));
-document.querySelector("#cloud-initialize").addEventListener("click", () => cloudAction(async () => {
-  if (!tasksLoaded || pendingFileDraft) throw new Error("Bitte zuerst den gewünschten Arbeitsstand öffnen oder wiederherstellen.");
-  const saved = await taskStorage.loadCloudCache(cloudScope());
-  if (saved?.working && !trackerMerge.equal(saved.working, saved.base)) throw new Error("Für dieses Konto gibt es noch ungesendete Änderungen. Bitte zuerst den Cloud-Tracker öffnen.");
-  // expected_revision=0 can only INSERT; an existing cloud tracker is never replaced.
-  const record = await trackerCloud.put(currentTrackerDocument(), 0);
-  await applyCloudRecord(record);
-}));
-document.querySelector("#cloud-sync").addEventListener("click", () => { cloudNextSync = 0; syncCloudTracker(true); });
-document.querySelector("#cloud-logout").addEventListener("click", () => cloudAction(async () => {
-  if (cloudLink) {
-    // Preserve a resumable account-scoped offline copy before hiding its data.
-    await persistCloudCache(fileDocument);
-    cloudStopRealtime(); trackerCloud.stop(); cloudLink = null;
-    const [localTasks, freeTime] = await Promise.all([taskStorage.load(), taskStorage.loadFreeTime()]);
-    fileDocument = null; fileHandle = null; fileBaseline = null; fileName = ""; fileDirty = false;
-    tasks = localTasks; browserFreeTime = freeTime; cloudConflict = false;
-    selectedProjectKey = ""; updateProjectOptions(); refreshHomeTasks();
-  }
-  try { await trackerCloud.signOut(); } finally { cloudMessage = "Abgemeldet. Cloud-Arbeitsstände bleiben für dieses Konto auf diesem Gerät gesichert."; }
-}));
-setInterval(() => { if (cloudLink && !document.hidden && Date.now() >= cloudNextSync) syncCloudTracker(); }, 500);
-window.addEventListener("online", () => { cloudNextSync = 0; syncCloudTracker(); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { cloudNextSync = 0; syncCloudTracker(); } });
 
 loadTasks();
