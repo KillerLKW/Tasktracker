@@ -2680,6 +2680,7 @@ async function restoreDriveTracker() {
     const saved = await taskStorage.loadDriveCache(active.scope);
     if (!saved || saved.scope !== driveScope(active.fileId, active.accountId) || saved.accountId !== active.accountId || saved.clientId !== active.clientId) throw new Error('Der gespeicherte Drive-Arbeitsstand gehört zu einem anderen Konto oder Projekt und wurde nicht geladen.');
     await applyDriveRecord({ id: saved.fileId, title: saved.title, etag: saved.etag, document: saved.base }, saved.working, saved.cacheVersion, active.accountId);
+    prepareRememberedDriveLogin();
     return true;
   } catch (error) { driveReady = true; driveError(error); return false; }
 }
@@ -2725,8 +2726,8 @@ async function syncDriveTracker(resolveConflicts = false) {
     else { driveMessage = error.auth ? 'Google-Verbindung bitte erneuern · Änderungen bleiben lokal gesichert.' : 'Abgleich unterbrochen · Arbeitsstand auf diesem Gerät gesichert'; driveError(error); driveNextSync = error.auth ? Infinity : Date.now() + Math.max(10000, (error.retryAfter || 0) * 1000); }
   } finally { driveSyncBusy = false; updateFileStatus(); }
 }
-async function driveAction(action) {
-  if (driveBusy || driveSyncBusy || !canChangeFile()) return;
+async function driveAction(action, { allowSync = false } = {}) {
+  if (driveBusy || (driveSyncBusy && !allowSync) || !canChangeFile()) return;
   driveBusy = true; setFileBusy(true); document.querySelector('#drive-error').hidden = true;
   try { await action(); } catch (error) { driveError(error); }
   finally { driveBusy = false; setFileBusy(false); }
@@ -2756,14 +2757,40 @@ document.querySelector('#drive-config-form').addEventListener('submit', event =>
     document.querySelector('#drive-setup').open = false;
   });
 });
-document.querySelector('#drive-login').addEventListener('click', () => driveAction(async () => {
-  if (!trackerDrive.ready) { await trackerDrive.prepare(); driveMessage = 'Google-Anmeldung geladen. Jetzt „Mit Google verbinden“ wählen.'; return; }
+async function renewDriveLogin() {
   try { await trackerDrive.authorize(); }
   finally {
     if (driveLink && trackerDrive.session && driveLink.accountId !== trackerDrive.session.accountId) await showBrowserAfterDrive();
   }
   driveMessage = ''; driveNextSync = 0; await refreshDriveFiles();
+}
+document.querySelector('#drive-login').addEventListener('click', () => driveAction(async () => {
+  if (!trackerDrive.ready) { await trackerDrive.prepare(); driveMessage = 'Google-Anmeldung geladen. Jetzt „Mit Google verbinden“ wählen.'; return; }
+  await renewDriveLogin();
 }));
+
+function prepareRememberedDriveLogin() {
+  // A previously chosen Drive tracker may load the SDK, but never open sign-in
+  // without a click. Prepare early so the brand click retains its popup gesture.
+  if (driveLink && navigator.onLine && location.protocol === 'https:') trackerDrive.prepare().catch(() => {});
+}
+document.querySelector('.brand').addEventListener('click', event => {
+  // Keep native new-tab/window gestures and the original local/Pi home link.
+  if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+      location.protocol !== 'https:' || !trackerDrive.config || (!driveLink && !trackerDrive.session)) return;
+  if (driveBusy) { event.preventDefault(); return; }
+  if (!canChangeFile()) return;
+  event.preventDefault();
+  const destination = event.currentTarget.href;
+  driveAction(async () => {
+    if (!trackerDrive.ready) await trackerDrive.prepare();
+    await renewDriveLogin();
+  }, { allowSync: true }).finally(() => {
+    // Retain the full home navigation/reload, including native beforeunload
+    // protection, even if Google is cancelled or unavailable. Working data is cached.
+    location.assign(destination);
+  });
+});
 document.querySelector('#drive-refresh').addEventListener('click', () => driveAction(refreshDriveFiles));
 document.querySelector('#drive-open').addEventListener('click', () => driveAction(() => openDriveFile(document.querySelector('#drive-file-list').value)));
 document.querySelector('#drive-pick').addEventListener('click', () => driveAction(async () => {
@@ -2794,7 +2821,7 @@ document.querySelector('#drive-disconnect').addEventListener('click', () => driv
   trackerDrive.disconnect(); driveMessage = 'Auf diesem Gerät getrennt. Deine Datei bleibt in Google Drive erhalten.';
 }));
 setInterval(() => { if (driveLink && !document.hidden && Date.now() >= driveNextSync) syncDriveTracker(); }, 500);
-window.addEventListener('online', () => { driveNextSync = 0; syncDriveTracker(); });
+window.addEventListener('online', () => { prepareRememberedDriveLogin(); driveNextSync = 0; syncDriveTracker(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { driveNextSync = 0; syncDriveTracker(); } });
 
 loadTasks();
