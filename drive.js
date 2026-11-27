@@ -18,16 +18,34 @@ const trackerDrive = (() => {
     return { clientId, apiKey, projectNumber: clientId.split('-')[0] };
   }
   function storeSession() {
-    try { if (session) sessionStorage.setItem('tasktracker-drive-session', JSON.stringify(session)); else sessionStorage.removeItem('tasktracker-drive-session'); }
-    catch { /* The in-memory session remains usable; tokens never enter tracker exports. */ }
+    for (const storage of ['sessionStorage', 'localStorage']) {
+      try {
+        if (session) window[storage].setItem('tasktracker-drive-session', JSON.stringify(session));
+        else if (storage === 'localStorage') window[storage].setItem('tasktracker-drive-session', 'null');
+        else window[storage].removeItem('tasktracker-drive-session');
+      } catch { /* Keep the current connection usable when browser storage is unavailable. */ }
+    }
   }
   async function init() {
     const saved = await taskStorage.driveLoad('config');
     if (saved || defaults.clientId) config = validateConfig(saved || defaults);
-    try {
-      const stored = JSON.parse(sessionStorage.getItem('tasktracker-drive-session'));
-      if (stored?.clientId === config?.clientId && typeof stored.token === 'string' && typeof stored.accountId === 'string' && stored.expiresAt > Date.now() + 30000) session = stored;
-    } catch {}
+    session = null;
+    for (const storage of ['localStorage', 'sessionStorage']) {
+      let raw = null;
+      try {
+        raw = window[storage].getItem('tasktracker-drive-session');
+        const stored = JSON.parse(raw);
+        if (stored?.clientId === config?.clientId && typeof stored.token === 'string' && stored.token &&
+            typeof stored.accountId === 'string' && stored.accountId && Number.isFinite(stored.expiresAt) && stored.expiresAt > Date.now() + 30000) {
+          session = stored; break;
+        }
+      } catch {}
+      // An explicit persistent logout or expired record must not revive an older tab token.
+      if (storage === 'localStorage' && raw !== null) break;
+    }
+    // Remember only the provider's original lifetime, never extend an expired token.
+    // Also migrate an existing tab session and remove stale stored credentials.
+    storeSession();
   }
   async function configure(value) {
     const next = validateConfig(value);

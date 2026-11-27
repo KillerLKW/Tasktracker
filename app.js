@@ -595,7 +595,10 @@ async function loadTasks() {
       document.querySelector(`#${name}-empty p`).textContent = "Aufgaben konnten nicht geladen werden. Bitte die Seite erneut öffnen.";
       document.querySelector(`#${name}-count`).textContent = "–";
     }
-  } finally { setFileBusy(false); }
+  } finally {
+    setFileBusy(false);
+    if (driveLink && trackerDrive.session) { driveNextSync = 0; syncDriveTracker(); }
+  }
 }
 
 function startOfWeek(value) {
