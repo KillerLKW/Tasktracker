@@ -85,6 +85,7 @@ img { display: block; max-width: 100%; }
 }
 
 .page {
+  --page-inset-top: 24px;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -273,6 +274,9 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .week-note { margin: 12px 0 16px; font-size: 12px; color: var(--muted); }
 .week-board { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 3px 14px #00000004; overscroll-behavior-x: contain; }
 .week-board:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.week-sticky-header { position: sticky; top: calc(-1 * var(--page-inset-top)); z-index: 4; height: 0; margin-inline: 1px; pointer-events: none; }
+.week-sticky-viewport { overflow: hidden; background: var(--surface); box-shadow: 0 3px 6px #00000012; }
+.week-sticky-viewport .week-table { margin: 0; }
 .week-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; color: var(--text); }
 .week-label-column { width: 112px; }
 .week-table th, .week-table td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
@@ -315,7 +319,7 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
   .brand { font-size: 19px; gap: 7px; }
   .brand img, .brand-logo { width: 36px; height: 36px; }
   .sync-status { font-size: 12px; }
-  .page { padding: 20px; }
+  .page { padding: 20px; --page-inset-top: 20px; }
   .welcome { margin-bottom: 16px; }
   .section-heading { padding: 18px 22px; }
   .empty-state { min-height: 110px; padding: 28px 20px; }

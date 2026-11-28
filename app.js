@@ -729,6 +729,7 @@ function renderWeekTasks(now = new Date()) {
   board.replaceChildren(mobile ? createMobileWeeks(rows, columns, now, dateFormat, weeks)
     : createWeekTable(rows, columns, now, dateFormat, weeks));
   board.hidden = columns.length === 0;
+  refreshStickyWeekHeader();
   const empty = document.querySelector("#week-empty");
   empty.hidden = columns.length > 0;
   empty.textContent = weekTasks.length ? "Keine Aufgaben passen zu diesen Filtern." : "Keine Aufgaben für diesen Zeitraum.";
@@ -764,6 +765,48 @@ function createWeekTaskList(items, now, dateFormat) {
   for (const task of items) list.append(createWeekTaskCard(task, now, dateFormat));
   return list;
 }
+
+// The board scrolls horizontally while .page scrolls vertically. A normal sticky
+// table cell would stick to the board's overflow container, not to .page.
+// Keep an inert header copy outside that container and mirror its horizontal offset.
+function refreshStickyWeekHeader() {
+  const board = document.querySelector('#week-board');
+  const viewport = document.querySelector('#week-sticky-header > .week-sticky-viewport');
+  const table = board.querySelector('.week-table');
+  viewport.replaceChildren();
+  if (table && !board.hidden) {
+    const copy = document.createElement('table');
+    copy.className = 'week-table';
+    copy.setAttribute('role', 'presentation');
+    copy.append(table.querySelector('colgroup').cloneNode(true), table.querySelector('thead').cloneNode(true));
+    viewport.append(copy);
+  }
+  updateStickyWeekHeader();
+}
+function updateStickyWeekHeader() {
+  const board = document.querySelector('#week-board');
+  const viewport = document.querySelector('#week-sticky-header > .week-sticky-viewport');
+  const table = board.querySelector('.week-table'), copy = viewport.firstElementChild;
+  if (activeView !== 'week' || board.hidden || !table || !copy) { viewport.hidden = true; return; }
+  const pageTop = document.querySelector('.page').getBoundingClientRect().top;
+  const head = table.tHead.getBoundingClientRect(), bounds = board.getBoundingClientRect();
+  viewport.hidden = head.top >= pageTop || bounds.bottom <= pageTop;
+  if (viewport.hidden) return;
+  copy.style.width = table.getBoundingClientRect().width + 'px';
+  viewport.style.width = board.clientWidth + 'px';
+  viewport.scrollLeft = board.scrollLeft;
+  viewport.style.transform = 'translateY(' + Math.min(0, bounds.bottom - pageTop - head.height) + 'px)';
+}
+let stickyWeekFrame = 0;
+function scheduleStickyWeekHeader() {
+  if (stickyWeekFrame) return;
+  stickyWeekFrame = requestAnimationFrame(() => { stickyWeekFrame = 0; updateStickyWeekHeader(); });
+}
+document.querySelector('.page').addEventListener('scroll', scheduleStickyWeekHeader, { passive: true });
+document.querySelector('#week-board').addEventListener('scroll', scheduleStickyWeekHeader, { passive: true });
+const stickyWeekResize = new ResizeObserver(scheduleStickyWeekHeader);
+stickyWeekResize.observe(document.querySelector('.page'));
+stickyWeekResize.observe(document.querySelector('#week-board'));
 function createMobileWeeks(rows, columns, now, dateFormat, weeks) {
   const result = document.createDocumentFragment();
   const currentWeek = localDateKey(startOfWeek(now));

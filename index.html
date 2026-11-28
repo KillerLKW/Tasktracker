@@ -9,10 +9,10 @@
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=task-scan-1">
+    <link rel="stylesheet" href="styles.css?v=week-header-1">
     <script src="storage.js?v=google-drive-1" defer></script>
     <script src="drive.js?v=google-drive-start-1" defer></script>
-    <script src="app.js?v=task-scan-1" defer></script>
+    <script src="app.js?v=week-header-1" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -331,6 +331,7 @@
         </div>
         <p class="week-note" id="semester-note" hidden></p>
         <p class="week-note">Montag bis Sonntag · Aufgaben bleiben in der Woche ihres Bearbeitungsdatums oder, ohne Bearbeitungsdatum, ihrer Frist. Das gilt auch für überfällige und erledigte Aufgaben.</p>
+        <div class="week-sticky-header" id="week-sticky-header" aria-hidden="true"><div class="week-sticky-viewport" hidden></div></div>
         <div class="week-board" id="week-board" tabindex="0" role="region" aria-label="Projektspalten – seitlich scrollbar"></div>
         <p class="week-empty" id="week-empty" role="status">Aufgaben werden geladen …</p>
       </section>
