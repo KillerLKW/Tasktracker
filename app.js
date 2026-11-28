@@ -2040,11 +2040,17 @@ function createTaskOptionsButton(task) {
   const button = document.createElement("button");
   button.type = "button"; button.className = "task-open";
   button.textContent = task.title; button.dataset.taskId = task.id;
-  const type = { lecture: "Vorlesung", tutorial: "Tutorium" }[task.taskType];
-  if (type) {
-    const badge = document.createElement("small"); badge.className = "task-type"; badge.textContent = type;
-    button.prepend(badge, " ");
-  }
+  const types = {
+    task: { label: 'Aufgabe', paths: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0', 'm8 12 3 3 5-6'] },
+    lecture: { label: 'Vorlesung', paths: ['M12 5v16', 'M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1'] },
+    tutorial: { label: 'Tutorium', paths: ['M14 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0', 'M2 21v-2a6 6 0 0 1 12 0v2', 'M17 3a4 4 0 0 1 0 8', 'M22 21v-2a6 6 0 0 0-4-5.65'] }
+  };
+  const type = types[task.taskType] || types.task;
+  const badge = document.createElement('small'); badge.className = 'task-type';
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', width: '14', height: '14', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false' })) icon.setAttribute(name, value);
+  for (const d of type.paths) { const path = document.createElementNS(icon.namespaceURI, 'path'); path.setAttribute('d', d); icon.append(path); }
+  badge.append(icon, type.label); button.prepend(badge, ' ');
   if (task.repeatRule) button.title = "Wiederkehrend · " + (task.repeatRule.total === null ? "unbegrenzt" : `${task.repeatRule.index + 1} von ${task.repeatRule.total}`);
   button.setAttribute("aria-haspopup", "dialog");
   button.addEventListener("click", () => openTaskOptions(task.id));
