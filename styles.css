@@ -364,8 +364,7 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 
 .task-open { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .task-open:hover { color: var(--accent); text-decoration: underline; }
-.task-type { display: inline-flex; align-items: center; gap: 4px; vertical-align: baseline; white-space: nowrap; color: var(--muted); font-size: .75em; font-weight: 500; }
-.task-type svg { display: inline-block; flex: 0 0 14px; width: 14px; height: 14px; align-self: center; }
+.task-type { display: inline-block; color: var(--muted); font-size: .75em; font-weight: 500; }
 .task-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 .task-row { cursor: pointer; }
 .task-options-dialog { width: min(620px, calc(100% - 32px)); }
