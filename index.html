@@ -9,10 +9,10 @@
     <title>Startseite · tasktracker</title>
     <link rel="icon" href="apple-touch-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
-    <link rel="stylesheet" href="styles.css?v=google-drive-1">
+    <link rel="stylesheet" href="styles.css?v=editor-work-1">
     <script src="storage.js?v=google-drive-1" defer></script>
     <script src="drive.js?v=google-drive-start-1" defer></script>
-    <script src="app.js?v=google-drive-start-1" defer></script>
+    <script src="app.js?v=editor-work-1" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -368,22 +368,36 @@
     <dialog class="task-dialog task-options-dialog" id="task-options" aria-labelledby="task-options-title">
       <form id="task-options-form" class="editor-layout">
         <div class="dialog-heading"><h2 id="task-options-title">Aufgabenoptionen</h2><button class="icon-button" id="options-close" type="button" aria-label="Schließen">×</button></div>
-<div class="editor-content"><div class="editor-draft" id="options-editor-draft" hidden></div><section class="editor-section"><h3>Überblick</h3>        <label for="options-title">Titel</label><input id="options-title" required maxlength="300">
-        <label for="options-type">Aufgabentyp</label><select id="options-type"><option value="task">Aufgabe</option><option value="lecture">Vorlesung</option><option value="tutorial">Tutorium</option></select>
-        <label for="options-status">Status</label><select id="options-status"><option value="open">Offen</option><option value="done">Erledigt</option></select>
-        <p class="storage-note">Der Status wird mit „Speichern“ übernommen. Beim Abschließen wird ein laufender Timer angehalten.</p>
-        <label for="options-project">Projekt</label><select id="options-project"></select>
-        <div id="options-new-project-row" hidden>
-          <label for="options-new-project">Name des neuen Projekts</label>
-          <input id="options-new-project" maxlength="100" autocomplete="off" disabled>
-        </div>
-</section><section class="editor-section"><h3>Planung</h3>        <div class="options-dates"><div><label for="options-planned">Bearbeitungsdatum</label><input id="options-planned" type="date" min="0001-01-01" max="9999-12-31"></div><div><label for="options-due">Frist <span class="optional-label">(optional)</span></label><input id="options-due" type="date" min="0001-01-01" max="9999-12-31"></div></div>
-        <div id="options-repeat-controls"></div>
-        <div class="options-dates"><div><label for="options-progress-mode">Fortschritt berechnen</label><select id="options-progress-mode"><option value="checklist">Aus Unteraufgaben</option><option value="manual">Manuell in Prozent</option></select></div><div><label for="options-progress">Fortschritt (%)</label><input id="options-progress" type="number" min="0" max="100" step="any" required></div></div>
-        <div id="options-progress-preview"></div><p class="storage-note">100 % Fortschritt ändert den Aufgabenstatus nicht automatisch.</p>
-</section><section class="editor-section editor-work"><h3>Notizen & Schritte</h3>        <label for="options-notes">Anmerkungen</label><textarea id="options-notes" rows="8" maxlength="100000" placeholder="Notizen zu dieser Aufgabe …"></textarea>
-        <section aria-labelledby="options-subtasks-title"><div class="options-subtasks-heading"><h3 id="options-subtasks-title">Unteraufgaben</h3><button class="button" id="options-add-subtask" type="button">＋ Unteraufgabe</button></div><p class="storage-note">Zum Abhaken einzelner Schritte. Der Aufgabenstatus bleibt unabhängig.</p><ul id="options-subtasks"></ul></section>
-</section></div><div class="editor-footer">        <p class="storage-note" id="options-storage-note"></p><p class="form-error" id="options-error" role="alert" hidden></p>
+        <div class="editor-content">
+          <div class="editor-draft" id="options-editor-draft" hidden></div>
+          <section class="editor-section editor-summary" aria-label="Titel und Termine">
+            <label for="options-title">Titel</label><input id="options-title" required maxlength="300">
+            <div class="options-dates">
+              <div><label for="options-planned">Bearbeitung <span class="optional-label">(optional)</span></label><input id="options-planned" type="date" min="0001-01-01" max="9999-12-31"></div>
+              <div><label for="options-due">Frist <span class="optional-label">(optional)</span></label><input id="options-due" type="date" min="0001-01-01" max="9999-12-31"></div>
+            </div>
+          </section>
+          <section class="editor-section editor-work" aria-label="Notizen und Unteraufgaben">
+            <div class="editor-notes"><label for="options-notes">Notizen</label><textarea id="options-notes" rows="4" maxlength="100000" placeholder="Notizen zu dieser Aufgabe …"></textarea></div>
+            <section aria-labelledby="options-subtasks-title">
+              <div class="options-subtasks-heading"><h3 id="options-subtasks-title">Unteraufgaben</h3><button class="button" id="options-add-subtask" type="button">＋ Unteraufgabe</button></div>
+              <ul id="options-subtasks"></ul><div id="options-progress-preview"></div>
+            </section>
+          </section>
+          <section class="editor-section editor-meta" aria-label="Aufgabenangaben">
+            <div><label for="options-type">Aufgabentyp</label><select id="options-type"><option value="task">Aufgabe</option><option value="lecture">Vorlesung</option><option value="tutorial">Tutorium</option></select></div>
+            <div><label for="options-status">Status</label><select id="options-status"><option value="open">Offen</option><option value="done">Erledigt</option></select></div>
+            <div class="editor-project"><label for="options-project">Projekt</label><select id="options-project"></select>
+              <div id="options-new-project-row" hidden><label for="options-new-project">Name des neuen Projekts</label><input id="options-new-project" maxlength="100" autocomplete="off" disabled></div>
+            </div>
+          </section>
+          <details class="editor-section editor-more" id="options-more">
+            <summary>Weitere Optionen</summary>
+            <div id="options-repeat-controls"></div>
+            <div class="options-dates"><div><label for="options-progress-mode">Fortschritt berechnen</label><select id="options-progress-mode"><option value="checklist">Aus Unteraufgaben</option><option value="manual">Manuell in Prozent</option></select></div><div><label for="options-progress">Fortschritt (%)</label><input id="options-progress" type="number" min="0" max="100" step="any" required></div></div>
+            <p class="storage-note">100 % Fortschritt ändert den Aufgabenstatus nicht automatisch. Beim Abschließen wird ein laufender Timer angehalten.</p>
+          </details>
+        </div><div class="editor-footer">        <p class="storage-note" id="options-storage-note"></p><p class="form-error" id="options-error" role="alert" hidden></p>
         <div class="dialog-actions"><button class="button" id="options-delete" type="button">In den Papierkorb</button><button class="button" id="options-timer" type="button">Zeiterfassung</button><button class="button" id="options-cancel" type="button">Abbrechen</button><button class="button button-primary" id="options-save" type="submit">Speichern</button></div>
 </div>
       </form>

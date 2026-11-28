@@ -534,11 +534,21 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 #task-options { width: min(960px, calc(100% - 40px)); height: min(880px, calc(100dvh - 40px)); max-height: none; padding: 0; overflow: hidden; }
 .editor-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; min-height: 0; }
 .editor-layout > .dialog-heading { margin: 0; padding: 20px 24px; border-bottom: 1px solid var(--border); }
-.editor-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: 20px; }
+.editor-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 16px 24px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 14px; }
 .editor-section { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .editor-section > h3 { margin: 0 0 12px; font-size: 16px; }
 .editor-work, .editor-content > .editor-draft { grid-column: 1 / -1; }
-.editor-work textarea { min-height: 180px; line-height: 1.6; }
+.editor-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.editor-work > *, .editor-meta > *, .editor-summary .options-dates > * { min-width: 0; }
+.editor-work textarea { min-height: 120px; line-height: 1.5; }
+.editor-work label { margin-top: 0; }
+.editor-work .options-subtasks-heading { margin-top: 0; min-height: 30px; }
+.editor-summary .options-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.editor-summary > label { margin-top: 0; }
+.editor-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.editor-meta label { margin-top: 0; }
+.editor-more > summary { cursor: pointer; font-weight: 600; padding: 2px 0; }
+.editor-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .editor-footer { padding: 12px 24px 18px; border-top: 1px solid var(--border); background: var(--surface); }
 .editor-footer .dialog-actions { margin-top: 8px; }
 .editor-footer .storage-note { margin: 0 0 6px; font-size: 11px; }
@@ -549,6 +559,10 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
   .editor-content { grid-template-columns: minmax(0, 1fr); padding: 14px; gap: 14px; }
   .editor-layout > .dialog-heading { padding: 14px 16px; }
   .editor-section { padding: 14px; }
+  .editor-work { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .editor-work textarea { min-height: 90px; }
+  .editor-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .editor-project { grid-column: 1 / -1; }
   .editor-footer { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); }
   .editor-footer .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .editor-footer .dialog-actions .button { margin: 0; min-width: 0; font-size: 12px; padding: 9px 6px; }

@@ -1974,6 +1974,10 @@ renderTimePanel();
 
 const optionsDialog = document.querySelector("#task-options");
 const optionsForm = document.querySelector("#task-options-form");
+optionsForm.addEventListener('invalid', event => {
+  const details = event.target.closest('details');
+  if (details) details.open = true;
+}, true);
 let optionsTaskId = null, optionsExpected = null, optionsChecklist = [];
 let optionsTaskSnapshot = null;
 let optionsCompleted = false;
@@ -2015,6 +2019,7 @@ function openTaskOptions(id) {
     showFileError(new Error("Diese Aufgabe enthält noch nicht unterstützte Anmerkungen oder Unteraufgaben. Die Daten bleiben erhalten.")); return;
   }
   optionsTaskId = id; optionsExpected = taskDetails.values(task);
+  document.querySelector('#options-more').open = false;
   document.querySelector("#options-type").value = optionsExpected.taskType;
   fillRepeatControls("options", optionsExpected.repeatRule);
   optionsExpected.completed = taskCompletion.isDone(task);
@@ -2045,6 +2050,7 @@ function openTaskOptions(id) {
   if (!optionsDialog.open) optionsDialog.showModal();
   beginEditor("options");
   title.focus();
+  optionsDialog.querySelector('.editor-content').scrollTop = 0;
 }
 function renderOptionsChecklist() {
   const rows = optionsChecklist.map((item, index) => {
