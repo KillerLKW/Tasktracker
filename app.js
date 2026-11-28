@@ -379,8 +379,9 @@ function renderHomeTasks(items, now = new Date()) {
       const summary = document.createElement("div"); summary.className = "task-summary";
       const heading = document.createElement("div"); heading.className = "task-completion-heading";
       heading.append(createCompletionCheckbox(task), title);
-      summary.append(heading, createTaskProgress(task));
-      row.append(summary, dates, createTimeButton(task));
+      summary.append(heading, dates, createTaskProgress(task));
+      row.classList.add('task-card');
+      row.append(summary, createTimeButton(task));
       bindTaskOptionsRow(row, task);
       return row;
     });
@@ -681,7 +682,7 @@ function createWeekTaskCard(task, now, dateFormat) {
       checkbox.addEventListener("change", () => completeTaskFromCard(task.id, checkbox));
       const titleText = createTaskOptionsButton(task);
       title.append(checkbox, titleText);
-      row.append(title, createTaskProgress(task));
+      row.append(title);
       const footer = document.createElement("div"); footer.className = "week-task-footer";
       const dates = document.createElement("div"); dates.className = "week-task-dates";
       for (const [label, date] of [["Geplant", task.plannedDate], ["Frist", task.dueDate]]) {
@@ -701,7 +702,7 @@ function createWeekTaskCard(task, now, dateFormat) {
       }
   footer.append(dates);
   if (!task.completed) footer.append(createTimeButton(task));
-  row.append(footer);
+      row.append(footer, createTaskProgress(task));
   bindTaskOptionsRow(row, task);
   return row;
 }
@@ -2188,12 +2189,15 @@ document.querySelector("#options-delete").addEventListener("click", async () => 
 });
 
 
-function createTaskProgress(task) {
+function createTaskProgress(task, { detailed = false } = {}) {
   const value = taskProgress.value(task), mode = taskProgress.mode(task);
   const group = document.createElement("div"); group.className = "task-progress";
   const label = document.createElement("span"); label.className = "task-progress-label";
   const list = Array.isArray(task.checklist) ? task.checklist : [];
-  label.textContent = "Fortschritt " + value + " %" + (mode === "checklist" && list.length ? " · " + list.filter(item => item?.done === true).length + "/" + list.length + " Unteraufgaben" : "");
+  const steps = mode === 'checklist' && list.length > 0;
+  if (!detailed && (task.completed || task.status === 'done' || (!steps && value === 0))) return document.createDocumentFragment();
+  label.textContent = steps ? list.filter(item => item?.done === true).length + '/' + list.length + ' Schritte' : value + ' %';
+  if (!detailed && (steps || value === 100)) { group.classList.add('is-text-only'); group.append(label); return group; }
   const bar = document.createElement("progress"); bar.max = 100; bar.value = value;
   bar.setAttribute("aria-label", "Fortschritt von „" + task.title + "“");
   group.append(label, bar); return group;
@@ -2204,7 +2208,7 @@ function updateOptionsProgress() {
   input.disabled = mode === "checklist";
   const task = { title: document.querySelector("#options-title").value || "Aufgabe", completed: optionsCompleted,
     progressMode: mode, progress: Number(input.value), checklist: optionsChecklist };
-  document.querySelector("#options-progress-preview").replaceChildren(createTaskProgress(task));
+  document.querySelector("#options-progress-preview").replaceChildren(createTaskProgress(task, { detailed: true }));
 }
 document.querySelector("#options-progress-mode").addEventListener("change", updateOptionsProgress);
 document.querySelector("#options-progress").addEventListener("input", updateOptionsProgress);

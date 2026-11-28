@@ -249,11 +249,17 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .task-list { list-style: none; margin: 0; padding: 0; }
 .task-row { display: grid; grid-template-columns: minmax(0, 1fr) 230px auto; align-items: center; gap: 16px; padding: 18px 28px; font-size: 14px; }
 .task-row + .task-row { border-top: 1px solid var(--border); }
-.task-title { min-width: 0; overflow-wrap: anywhere; }
+.task-title { min-width: 0; overflow-wrap: anywhere; font-weight: 600; font-size: 15px; line-height: 1.45; }
 .task-date { flex-shrink: 0; color: var(--muted); font-size: 13px; }
 .task-dates { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .task-dates:empty { display: none; }
 .task-row .task-time-button { grid-column: 3; margin-top: 0; }
+.task-card { grid-template-columns: minmax(0, 1fr) auto; }
+.task-card .task-title { font-weight: 600; font-size: 15px; line-height: 1.45; }
+.task-card .task-time-button { grid-column: 2; }
+.task-card .task-dates { margin: 6px 0 0 34px; gap: 3px; }
+.task-card .task-date { font-size: 12px; line-height: 1.4; }
+.task-card .task-progress { margin-left: 34px; }
 .task-date-overdue { color: var(--danger); }
 [hidden] { display: none !important; }
 
@@ -287,7 +293,8 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .week-task { padding: 13px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: 0 2px 5px #00000004; overflow-wrap: anywhere; font-size: 14px; }
 .week-task:focus-within { border-color: var(--accent); }
 .week-task + .week-task { margin-top: 8px; }
-.week-task-title { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; font-weight: 600; line-height: 1.5; cursor: pointer; }
+.week-task-title { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 8px; font-weight: 600; line-height: 1.45; cursor: pointer; }
+.week-task-title .task-open { font-weight: 600; font-size: 14px; }
 .week-task-title span { min-width: 0; }
 .week-task.is-completed { background: var(--surface-soft); box-shadow: none; }
 .week-task.is-completed .week-task-title span { text-decoration: line-through; color: var(--muted); font-weight: 400; }
@@ -416,12 +423,13 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 
 .task-summary { min-width: 0; }
 .task-progress { display: grid; gap: 5px; margin-top: 8px; max-width: 280px; }
-.task-progress-label { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.task-progress-label { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.task-progress.is-text-only { display: block; }
 .task-progress progress { display: block; width: 100%; height: 6px; border: 0; border-radius: 4px; overflow: hidden; background: var(--surface-alt); accent-color: var(--accent); }
 .task-progress progress::-webkit-progress-bar { background: var(--surface-alt); border-radius: 4px; }
 .task-progress progress::-webkit-progress-value { background: var(--accent); border-radius: 4px; }
 .task-progress progress::-moz-progress-bar { background: var(--accent); border-radius: 4px; }
-.week-task > .task-progress { max-width: none; margin: 0 0 12px; }
+.week-task > .task-progress { max-width: none; margin: 6px 0 0; }
 .task-options-dialog select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
 .task-options-dialog select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @media(max-width:600px) { .task-row .task-summary { grid-column: 1 / -1; } }
@@ -526,10 +534,11 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
   .week-view:has(.is-compact) .week-note:not(#semester-note) { display: none; }
   .week-board.is-compact { margin-top: 8px; }
   .week-board.is-compact .task-time-button,
-  .week-board.is-compact .task-progress,
   .week-board.is-compact .week-task-dates time:first-of-type:not(:only-of-type),
   .week-board.is-compact .mobile-week:only-child .week-row-range,
   .week-board.is-compact .week-task-footer:has(.week-task-dates:empty) { display: none; }
+  .mobile-week .task-progress.is-text-only { display: block; }
+  .week-board.is-compact .task-progress progress { display: none; }
 }
 #task-options { width: min(960px, calc(100% - 40px)); height: min(880px, calc(100dvh - 40px)); max-height: none; padding: 0; overflow: hidden; }
 .editor-layout { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; min-height: 0; }
